@@ -1,0 +1,4 @@
+# Never commit hub data or documents — they live in Supabase.
+private-import/
+*.zip
+.DS_Store

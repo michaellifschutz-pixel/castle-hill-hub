@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Castle Hill Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/*
+VOICE: calm, plain-spoken facility office; Title Case labels, no jargon.
+IDEA: the administrator's clipboard — one sheet that says what needs you first.
+PICTURE: the "Needs You" list itself, ranked by risk, at the top of Today.
+COLOUR and TYPE: white paper, deep slate-blue ink for structure, red only for overdue, amber for soon; Public Sans throughout.
+LAYOUT: sticky header with search and tabs; one calm column of rows; sheets slide up for details and forms.
+*/
+:root{color-scheme:light dark;
+--bg:light-dark(#f6f6f3,#11151b);--paper:light-dark(#ffffff,#181d25);--ink:light-dark(#18202b,#e8ebef);--soft:light-dark(#5b6573,#9aa4b2);
+--line:light-dark(#e4e5e1,#262d38);--brand:light-dark(#1f3a5f,#8fb3e0);--brandbg:light-dark(#1f3a5f,#1b2b42);--onbrand:#fff;
+--red:light-dark(#b7352a,#ff8a7d);--redbg:light-dark(#fbeceb,#3a1d1b);--amber:light-dark(#9a5b00,#f2b75b);--amberbg:light-dark(#fdf3e2,#3a2c14);
+--green:light-dark(#2d6a3e,#7fd197);--greenbg:light-dark(#e9f4ec,#183022);--blue:light-dark(#2457a5,#8fb3e0);--bluebg:light-dark(#e8eff9,#1b2b42)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Public Sans",system-ui,sans-serif;overflow-x:clip}
+button,input,select,textarea{font:inherit;color:inherit}
+header{position:sticky;top:0;z-index:5;background:var(--brandbg);color:var(--onbrand)}
+.top{display:flex;gap:12px;align-items:center;padding:12px max(4vw,14px) 8px;max-width:1100px;margin:auto}
+.top h1{font-size:20px;margin:0;font-weight:700;white-space:nowrap}
+.top small{display:block;font-weight:400;opacity:.75;font-size:13px}
+.search{flex:1;display:flex}
+.search input{width:100%;border:0;border-radius:10px;padding:10px 12px;background:rgba(255,255,255,.14);color:#fff;font-size:16px}
+.search input::placeholder{color:rgba(255,255,255,.7)}
+nav{display:flex;gap:4px;overflow-x:auto;padding:0 max(4vw,14px);max-width:1100px;margin:auto;scrollbar-width:none}
+nav a{flex:none;color:#fff;opacity:.75;text-decoration:none;padding:10px 12px;font-weight:600;font-size:15px;border-bottom:3px solid transparent}
+nav a.on{opacity:1;border-color:#fff}
+main{max-width:1100px;margin:auto;padding:18px max(4vw,14px) 110px}
+h2{font-size:28px;line-height:1.1;margin:6px 0 4px;text-wrap:balance}
+.sub{color:var(--soft);margin:0 0 16px}
+h3{font-size:17px;margin:22px 0 8px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.row{display:flex;gap:12px;align-items:center;padding:13px 16px;border-top:1px solid var(--line);cursor:pointer}
+.row:first-child{border-top:0}
+.row:hover{background:light-dark(#fafaf8,#1c222b)}
+.row .main{flex:1}
+.row .t{font-weight:600}
+.row .m{color:var(--soft);font-size:14px}
+.pill{flex:none;font-size:13px;font-weight:600;padding:3px 9px;border-radius:99px;white-space:nowrap;background:var(--bluebg);color:var(--blue)}
+.pill.red{background:var(--redbg);color:var(--red)}.pill.amber{background:var(--amberbg);color:var(--amber)}.pill.green{background:var(--greenbg);color:var(--green)}.pill.grey{background:light-dark(#eeeeea,#232a34);color:var(--soft)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:0 0 18px}
+.stat{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:14px 16px;cursor:pointer}
+.stat b{display:block;font-size:30px;line-height:1.1}
+.stat span{color:var(--soft);font-size:14px}
+.stat.red b{color:var(--red)}.stat.amber b{color:var(--amber)}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 12px}
+.btn{border:1px solid var(--line);background:var(--paper);border-radius:10px;padding:10px 14px;min-height:44px;font-weight:600;cursor:pointer}
+.btn.pri{background:var(--brand);border-color:var(--brand);color:light-dark(#fff,#11151b)}
+.btn.warn{color:var(--red)}
+.btn:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,.row:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.chip{border:1px solid var(--line);background:var(--paper);border-radius:99px;padding:7px 13px;font-size:14px;font-weight:600;cursor:pointer;min-height:36px}
+.chip.on{background:var(--brand);color:light-dark(#fff,#11151b);border-color:var(--brand)}
+.empty{padding:22px 16px;color:var(--soft);text-align:center}
+.check{flex:none;width:26px;height:26px;border-radius:50%;border:2px solid var(--soft);background:none;cursor:pointer}
+.check.done{background:var(--green);border-color:var(--green)}
+.fab{position:fixed;right:max(4vw,16px);bottom:22px;width:60px;height:60px;border-radius:50%;border:0;background:var(--brand);color:light-dark(#fff,#11151b);font-size:32px;box-shadow:0 6px 20px rgba(0,0,0,.25);cursor:pointer;z-index:6}
+.quick{display:flex;gap:8px;margin:0 0 14px}
+.quick input{flex:1;border:1px solid var(--line);border-radius:10px;padding:11px 12px;background:var(--paper);font-size:16px}
+.sheetbg{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:20;display:none;align-items:flex-end;justify-content:center}
+.sheetbg.open{display:flex}
+.sheet{background:var(--paper);width:min(680px,100%);max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:20px max(4vw,18px) 28px}
+@media(min-width:700px){.sheetbg{align-items:center}.sheet{border-radius:18px}}
+.sheet h2{font-size:22px;margin:0 0 4px}
+.f{display:block;margin:12px 0}
+.f span{display:block;font-size:14px;font-weight:600;color:var(--soft);margin-bottom:4px}
+.f input,.f select,.f textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--bg);font-size:16px}
+.f textarea{min-height:90px}
+.kv{display:grid;grid-template-columns:9em 1fr;gap:6px 12px;margin:12px 0}
+.kv dt{color:var(--soft);font-size:14px}.kv dd{margin:0}
+.log{border-left:3px solid var(--line);padding-left:12px;margin:10px 0}
+.log p{margin:6px 0;font-size:15px}.log time{color:var(--soft);font-size:13px;margin-right:6px}
+.acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+a{color:var(--blue)}
+.toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:11px 16px;border-radius:12px;z-index:30;display:none;gap:12px;align-items:center;max-width:92vw}
+.toast.show{display:flex}.toast button{background:none;border:0;color:inherit;font-weight:700;text-decoration:underline;cursor:pointer}
+.note{font-size:14px;color:var(--soft);margin:8px 0}
+.banner{background:var(--amberbg);color:var(--amber);padding:10px 14px;border-radius:10px;margin:0 0 14px;font-size:14px;display:none}
+.scroll{overflow-x:auto}
+table.grid{border-collapse:collapse;font-size:13px;width:100%;min-width:760px;background:var(--paper)}
+.grid th,.grid td{border:1px solid var(--line);padding:6px;text-align:center}
+.grid th:first-child,.grid td:first-child{text-align:left;min-width:190px;position:sticky;left:0;background:var(--paper)}
+.grid td.due{background:var(--bluebg);color:var(--blue);font-weight:700}.grid td.late{background:var(--redbg);color:var(--red);font-weight:700}.grid td.ok{background:var(--greenbg);color:var(--green);font-weight:700}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.cal div{background:var(--paper);border:1px solid var(--line);border-radius:8px;min-height:64px;padding:4px;font-size:12px}
+.cal .h{min-height:0;border:0;background:none;text-align:center;color:var(--soft);font-weight:600}
+.cal .x{opacity:.35}.cal .td{border-color:var(--brand)}
+.cal i{display:block;font-style:normal;background:var(--bluebg);color:var(--blue);border-radius:4px;padding:1px 4px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal i.p{opacity:.55}
+table.fin{width:100%;border-collapse:collapse;background:var(--paper)}
+.fin th,.fin td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+.fin th:first-child,.fin td:first-child{text-align:left}
+.answer{white-space:pre-wrap;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:12px}
+.hl{background:var(--amberbg)}
+@media(max-width:600px){.top h1 small{display:none}h2{font-size:24px}.kv{grid-template-columns:1fr}.kv dt{margin-top:6px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="top">
+    <h1>Castle Hill<small>Hub</small></h1>
+    <form class="search" id="sform"><input id="q" type="search" placeholder="Search everything… e.g. floor plans, boiler, Vanwell" aria-label="Search everything"></form>
+  </div>
+  <nav id="nav"></nav>
+</header>
+<main>
+  <div class="banner" id="banner"></div>
+  <div id="view"></div>
+</main>
+<button class="fab" id="fab" aria-label="Add">+</button>
+<div class="sheetbg" id="sheetbg"><div class="sheet" id="sheet" role="dialog" aria-modal="true"></div></div>
+<div class="toast" id="toast"><span id="toastmsg"></span><button id="undo">Undo</button></div>
+<script src="supabase.js"></script>
+<script src="config.js"></script>
+<script src="backend.js"></script>
+<script>
+{
+const FAC = {name:"Optima Care Castle Hill", addr:"615 23rd St, Union City, NJ 07087", admin:"Michael Lifschutz, Administrator", email:"mlifschutz@optimacarecastlehill.com"};
+const TABS = [["today","Today"],["todo","To-Do"],["safety","Life Safety"],["docs","Documents"],["qapi","QAPI"],["timeoff","Time Off"],["finance","Finance"],["daily","Daily"],["contacts","Contacts"],["ask","Ask"]];
+const SECTIONS = ["todos","inspections","docs","contacts","qapi","timeoff","finance","facility","daily"];
+const FREQ = {"Weekly":0.25,"Monthly":1,"Quarterly":3,"Semi-Annual":6,"Annual":12,"Every 2 Years":24,"Every 3 Years":36,"Every 4 Years":48,"Every 5 Years":60};
+const TODO_CATS = ["Life Safety","Compliance & Survey","HR / Staff","Purchases","Invoices & AP","Finance","Vendors","General"];
+const DOC_FOLDERS = ["Licenses & Certificates","Insurance","Contracts","Compliance & Survey Letters","Emergency Prep","Facility Info","QAPI Documents","Financial Source Files","Mail Attachments","HR – Owner Only","Other"];
+const DEPTS = ["Administration","Nursing","Admissions","Business Office","Dietary","Housekeeping","Laundry","Maintenance","MDS","Medical Records","Recreation","Rehab","Social Services","Staff Education","HR","Infection Control","Pharmacy","Lab","Wound Care"];
+let S = {}; SECTIONS.forEach(k=>S[k]= k==="finance"?{months:[],target:300000}: k==="facility"?{items:[]}:k==="daily"?{days:[],targets:{nursing:129,agency:15,census:147}}:[]);
+let db=null, assets=null, sample=null, canWrite=true, loaded=false;const lastJSON={};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const todayISO=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+const pd=s=>{if(!s)return null;const [y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d||1)};
+const iso=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const days=s=>{const d=pd(s);if(!d)return null;const t=pd(todayISO());return Math.round((d-t)/864e5)};
+const fmt=s=>{const d=pd(s);return d?d.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}):"—"};
+const money=n=>n==null||n===""||isNaN(n)?"—":(n<0?"−":"")+"$"+Math.abs(Math.round(n)).toLocaleString();
+function addMonths(s,m){const d=pd(s);if(!d)return null;if(m<1){d.setDate(d.getDate()+Math.round(m*28));return iso(d)}d.setMonth(d.getMonth()+m);return iso(d)}
+function nextDue(i){return i.nextDue||(i.lastDone&&FREQ[i.freq]?addMonths(i.lastDone,FREQ[i.freq]):null)}
+function dueState(s,soon=30){if(!s)return["Needs Date","grey"];const n=days(s);if(n<0)return[(-n)+" Days Overdue","red"];if(n===0)return["Due Today","amber"];if(n<=soon)return["Due In "+n+" Days","amber"];return["Due "+fmt(s),"blue"]}
+function expState(s){if(!s)return["No Expiration","grey"];const n=days(s);if(n<0)return["Expired "+fmt(s),"red"];if(n<=60)return["Expires In "+n+" Days","amber"];return["Valid To "+fmt(s),"green"]}
+function blobUrl(f){return f&&f.id?"/_blob/"+f.id:""}
+
+/* ---------- storage ---------- */
+async function save(sec){
+  if(!db){toast("Saved on this screen only — storage isn't available here");return}
+  const body=sec==="finance"?S.finance:sec==="facility"?S.facility:sec==="daily"?S.daily:{items:S[sec]};lastJSON[sec]=JSON.stringify(body);
+  try{await db.doc("hub/"+sec).set(JSON.parse(lastJSON[sec]))}
+  catch(e){toast(e&&e.code==="quota_exceeded"?"Storage is full":"Couldn't save — try again");if(e&&e.code==="invalid_argument"){canWrite=false;}}
+}
+let undoFn=null,tt=null;
+function toast(msg,undo){$("#toastmsg").textContent=msg;undoFn=undo||null;$("#undo").style.display=undo?"":"none";$("#toast").classList.add("show");clearTimeout(tt);tt=setTimeout(()=>$("#toast").classList.remove("show"),5000)}
+$("#undo").onclick=()=>{if(undoFn)undoFn();$("#toast").classList.remove("show")};
+
+/* ---------- sheet + forms ---------- */
+function openSheet(html){$("#sheet").innerHTML=html;$("#sheetbg").classList.add("open");const f=$("#sheet").querySelector("input,select,textarea,button");if(f)f.focus()}
+function closeSheet(){$("#sheetbg").classList.remove("open")}
+$("#sheetbg").addEventListener("click",e=>{if(e.target.id==="sheetbg")closeSheet()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeSheet()});
+function field(f,v){const val=v??f.def??"";const id="f_"+f.k;
+  let inp;
+  if(f.type==="select")inp=`<select id="${id}">${f.opts.map(o=>`<option ${o===val?"selected":""}>${esc(o)}</option>`).join("")}</select>`;
+  else if(f.type==="textarea")inp=`<textarea id="${id}">${esc(val)}</textarea>`;
+  else if(f.type==="file")inp=`<input id="${id}" type="file" accept="image/*,application/pdf">`;
+  else inp=`<input id="${id}" type="${f.type||"text"}" value="${esc(val)}" ${f.type==="number"?'inputmode="decimal" step="any"':""}>`;
+  return `<label class="f"><span>${esc(f.label)}</span>${inp}</label>`}
+function form(title,fields,vals,onSave,opts={}){
+  openSheet(`<h2>${esc(title)}</h2>${opts.intro?`<p class="note">${opts.intro}</p>`:""}<form id="frm">${fields.map(f=>field(f,vals&&vals[f.k])).join("")}
+  <div class="acts"><button class="btn pri" type="submit">Save</button><button class="btn" type="button" id="cancel">Cancel</button>${opts.del?'<button class="btn warn" type="button" id="del">Delete</button>':""}</div></form>`);
+  $("#cancel").onclick=closeSheet;
+  if(opts.del)$("#del").onclick=()=>{closeSheet();opts.del()};
+  if(opts.onFile){const fi=fields.find(f=>f.type==="file");if(fi)$("#f_"+fi.k).addEventListener("change",e=>opts.onFile(e.target.files[0]))}
+  $("#frm").onsubmit=async e=>{e.preventDefault();const out={};let file=null;
+    for(const f of fields){const el=$("#f_"+f.k);if(f.type==="file"){file=el.files[0]||null}else out[f.k]=f.type==="number"?(el.value===""?null:Number(el.value)):el.value.trim()}
+    const btn=$("#frm button[type=submit]");btn.disabled=true;btn.textContent="Saving…";
+    if(file){const up=await upload(file);if(up)out._file=up}
+    closeSheet();onSave(out)}}
+async function upload(file){
+  if(!assets){toast("File uploads aren't available in this view");return null}
+  try{const r=await assets.upload(file);return{id:r.id,name:file.name,type:file.type,size:r.sizeBytes}}
+  catch(e){toast("Upload failed — files must be under 20 MB");return null}}
+
+/* ---------- mail helpers ---------- */
+function mailto(to,subject,body,cc){return "mailto:"+encodeURIComponent(to||"")+"?"+(cc?"cc="+encodeURIComponent(cc)+"&":"")+"subject="+encodeURIComponent(subject)+"&body="+encodeURIComponent(body)}
+function emailSheet(to,cc,subject,body){
+  openSheet(`<h2>Email</h2><p class="note">Check it, then tap Open In Email. Nothing is sent until you press Send in your email app.</p>
+  <label class="f"><span>To</span><input id="m_to" value="${esc(to)}"></label><label class="f"><span>Cc</span><input id="m_cc" value="${esc(cc||"")}"></label>
+  <label class="f"><span>Subject</span><input id="m_su" value="${esc(subject)}"></label><label class="f"><span>Message</span><textarea id="m_bo" style="min-height:200px">${esc(body)}</textarea></label>
+  <div class="acts"><a class="btn pri" id="m_go" href="#" target="_blank" rel="noopener">Open In Email</a><button class="btn" id="m_cp" type="button">Copy Text</button><button class="btn" id="m_x" type="button">Close</button></div>`);
+  const upd=()=>{$("#m_go").href=mailto($("#m_to").value,$("#m_su").value,$("#m_bo").value,$("#m_cc").value)};upd();
+  ["#m_to","#m_cc","#m_su","#m_bo"].forEach(s=>$(s).addEventListener("input",upd));
+  $("#m_cp").onclick=async()=>{try{await navigator.clipboard.writeText("To: "+$("#m_to").value+"\nCc: "+$("#m_cc").value+"\nSubject: "+$("#m_su").value+"\n\n"+$("#m_bo").value);toast("Copied")}catch(e){toast("Copy isn't allowed here — select the text instead")}};
+  $("#m_x").onclick=closeSheet}
+function contactByRole(word){return S.contacts.find(c=>(c.role+" "+c.company).toLowerCase().includes(word))}
+
+/* ---------- Today ---------- */
+function needs(){
+  const out=[];
+  S.inspections.forEach(i=>{const d=nextDue(i);if(i.booked&&days(i.booked)>=0)return;const n=d==null?null:days(d);
+    if(n!=null&&n<0)out.push({w:3,d,kind:"Life Safety",t:i.name,p:dueState(d),go:()=>insp(i.id)});
+    else if(n!=null&&n<=30)out.push({w:1,d,kind:"Life Safety",t:i.name,p:dueState(d),go:()=>insp(i.id)})});
+  S.docs.forEach(x=>{if(!x.expires)return;const n=days(x.expires);if(n<0)out.push({w:3,d:x.expires,kind:"Document",t:x.title,p:expState(x.expires),go:()=>doc(x.id)});else if(n<=60)out.push({w:1,d:x.expires,kind:"Document",t:x.title,p:expState(x.expires),go:()=>doc(x.id)})});
+  S.todos.forEach(t=>{if(t.done)return;const n=t.due?days(t.due):null;if(n!=null&&n<0)out.push({w:2,d:t.due,kind:t.cat,t:t.title,p:dueState(t.due),go:()=>todo(t.id)});else if(n!=null&&n<=7)out.push({w:1,d:t.due,kind:t.cat,t:t.title,p:dueState(t.due,7),go:()=>todo(t.id)})});
+  S.timeoff.forEach(r=>{if(r.status==="Pending")out.push({w:1,d:r.start,kind:"Time Off",t:r.name+" — "+fmt(r.start)+(r.end&&r.end!==r.start?" to "+fmt(r.end):""),p:["Needs Approval","amber"],go:()=>tor(r.id)})});
+  return out.sort((a,b)=>b.w-a.w||(a.d||"9").localeCompare(b.d||"9"))}
+let NEEDS=[];
+function vToday(){
+  NEEDS=needs();
+  const od=S.inspections.filter(i=>{const d=nextDue(i);return d&&days(d)<0&&!(i.booked&&days(i.booked)>=0)}).length;
+  const open=S.todos.filter(t=>!t.done).length;
+  const exp=S.docs.filter(x=>x.expires&&days(x.expires)<=60).length;
+  const pend=S.timeoff.filter(r=>r.status==="Pending").length;
+  const d=new Date();const h=d.getHours();
+  return `<h2>${h<12?"Good Morning":h<17?"Good Afternoon":"Good Evening"}, Michael</h2><p class="sub">${d.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})} · ${esc(FAC.name)}</p>
+  <div class="stats">
+   <div class="stat ${od?"red":""}" data-go="safety"><b>${od}</b><span>Inspections Overdue</span></div>
+   <div class="stat" data-go="todo"><b>${open}</b><span>Open To-Dos</span></div>
+   <div class="stat ${exp?"amber":""}" data-go="docs"><b>${exp}</b><span>Documents Expiring ≤ 60 Days</span></div>
+   <div class="stat ${pend?"amber":""}" data-go="timeoff"><b>${pend}</b><span>Time Off To Approve</span></div>
+  </div>
+  <h3>Needs You · Most Urgent First</h3>
+  <div class="card">${NEEDS.length?NEEDS.slice(0,25).map((n,k)=>`<div class="row" tabindex="0" data-need="${k}"><div class="main"><div class="t">${esc(n.t)}</div><div class="m">${esc(n.kind)}</div></div><span class="pill ${n.p[1]}">${esc(n.p[0])}</span></div>`).join(""):`<div class="empty">Nothing urgent. Nice.</div>`}</div>
+  ${NEEDS.length>25?`<p class="note">${NEEDS.length-25} more items are in their tabs.</p>`:""}`}
+
+/* ---------- To-Do ---------- */
+let todoFilter="Open";
+function guessCat(t){t=t.toLowerCase();
+  if(/fire|boiler|elevator|sprinkler|generator|inspection|drill|legionella|grease|extinguisher|alarm|egress/.test(t))return"Life Safety";
+  if(/doh|poc|survey|qapi|cms|rac|penalty|deficien|appeal|medicare/.test(t))return"Compliance & Survey";
+  if(/hire|staff|raise|salary|employee|interview|hr\b|union|1199|time off|schedule/.test(t))return"HR / Staff";
+  if(/buy|order|purchase|bins|rails|printer|toner/.test(t))return"Purchases";
+  if(/invoice|ap\b|pay|bill|stampli|credit/.test(t))return"Invoices & AP";
+  if(/budget|financial|census|ppd|ebitdar/.test(t))return"Finance";
+  if(/vendor|quote|contract|baa/.test(t))return"Vendors";return"General"}
+function vTodo(){
+  const cats=["Open","Done",...TODO_CATS];
+  let list=S.todos.filter(t=>todoFilter==="Done"?t.done:!t.done);
+  if(!["Open","Done"].includes(todoFilter))list=S.todos.filter(t=>!t.done&&t.cat===todoFilter);
+  list.sort((a,b)=>(a.due||"9").localeCompare(b.due||"9"));
+  return `<h2>To-Do</h2><p class="sub">Type it in plain words — it sorts itself. Tap the circle when done.</p>
+  <form class="quick" id="qadd"><input id="qtext" placeholder="Add a to-do… e.g. Order new ingredient bins by Friday" aria-label="New to-do"><button class="btn pri">Add</button></form>
+  <div class="bar">${cats.map(c=>`<button class="chip ${c===todoFilter?"on":""}" data-tf="${esc(c)}">${esc(c)}${c!=="Done"&&c!=="Open"?" · "+S.todos.filter(t=>!t.done&&t.cat===c).length:""}</button>`).join("")}</div>
+  <div class="card">${list.length?list.map(t=>`<div class="row" tabindex="0" data-todo="${t.id}"><button class="check ${t.done?"done":""}" data-tick="${t.id}" aria-label="${t.done?"Reopen":"Mark done"}"></button><div class="main"><div class="t">${esc(t.title)}</div><div class="m">${esc(t.cat)}${t.notes?" · "+esc(t.notes.slice(0,90))+(t.notes.length>90?"…":""):""}</div></div>${t.due&&!t.done?`<span class="pill ${dueState(t.due,7)[1]}">${esc(dueState(t.due,7)[0])}</span>`:""}</div>`).join(""):`<div class="empty">Nothing here.</div>`}</div>`}
+function parseDue(text){const t=text.toLowerCase();const d=pd(todayISO());
+  const wd=["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
+  if(/\btoday\b/.test(t))return iso(d);if(/\btomorrow\b/.test(t)){d.setDate(d.getDate()+1);return iso(d)}
+  for(let k=0;k<7;k++)if(t.includes(wd[k])){let add=(k-d.getDay()+7)%7||7;d.setDate(d.getDate()+add);return iso(d)}
+  const m=t.match(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/);if(m){let y=m[3]?Number(m[3].length===2?"20"+m[3]:m[3]):d.getFullYear();const x=new Date(y,m[1]-1,m[2]);if(!m[3]&&x<d)x.setFullYear(y+1);return iso(x)}
+  return""}
+function todoFields(){return[{k:"title",label:"What Needs To Happen"},{k:"cat",label:"Category",type:"select",opts:TODO_CATS},{k:"due",label:"Due Date",type:"date"},{k:"notes",label:"Notes, Status, What's Needed",type:"textarea"},{k:"file",label:"Attach A File (Optional)",type:"file"}]}
+function todo(id){const t=S.todos.find(x=>x.id===id);if(!t)return;
+  const pc=contactByRole("purchas"),ap=contactByRole("ap");
+  openSheet(`<h2>${esc(t.title)}</h2><p class="note">${esc(t.cat)}${t.due?" · Due "+fmt(t.due):""}${t.done?" · Done "+fmt(t.done):""}</p>
+  ${t.notes?`<p style="white-space:pre-wrap">${esc(t.notes)}</p>`:""}
+  ${(t.files||[]).map(f=>`<p><a href="${blobUrl(f)}" target="_blank" rel="noopener">📎 ${esc(f.name)}</a></p>`).join("")}
+  ${(t.log||[]).length?`<div class="log">${t.log.map(l=>`<p><time>${fmt(l.d)}</time>${esc(l.t)}</p>`).join("")}</div>`:""}
+  <label class="f"><span>Add An Update</span><input id="t_upd" placeholder="e.g. Called Sarah, quote coming Monday"></label>
+  <div class="acts"><button class="btn pri" id="t_done">${t.done?"Reopen":"Mark Done"}</button><button class="btn" id="t_addu">Save Update</button><button class="btn" id="t_edit">Edit</button>
+  ${t.cat==="Purchases"?`<button class="btn" id="t_pur">Email Purchasing</button>`:""}${t.cat==="Invoices & AP"?`<button class="btn" id="t_ap">Email AP</button>`:""}<button class="btn" id="t_em">Email</button></div>`);
+  $("#t_done").onclick=()=>{closeSheet();tick(id)};
+  $("#t_addu").onclick=()=>{const v=$("#t_upd").value.trim();if(!v)return;t.log=[...(t.log||[]),{d:todayISO(),t:v}];save("todos");todo(id)};
+  $("#t_edit").onclick=()=>form("Edit To-Do",todoFields(),t,o=>{const f=o._file;delete o._file;Object.assign(t,o);if(f)t.files=[...(t.files||[]),f];save("todos");render()},{del:()=>{const i=S.todos.indexOf(t);S.todos.splice(i,1);save("todos");render();toast("To-do deleted",()=>{S.todos.splice(i,0,t);save("todos");render()})}});
+  const body=`Hi,\n\n${t.title}${t.notes?"\n\n"+t.notes:""}\n\nThank you,\n${FAC.admin}\n${FAC.name}\n${FAC.addr}`;
+  if($("#t_pur"))$("#t_pur").onclick=()=>emailSheet(pc?pc.email:"","",t.title+" — "+FAC.name,body);
+  if($("#t_ap"))$("#t_ap").onclick=()=>emailSheet(ap?ap.email:"","",t.title+" — "+FAC.name,body);
+  $("#t_em").onclick=()=>emailSheet("","",t.title,body)}
+function tick(id){const t=S.todos.find(x=>x.id===id);if(!t)return;const prev=t.done;t.done=prev?null:todayISO();save("todos");render();if(!prev)toast("Marked done",()=>{t.done=null;save("todos");render()})}
+
+/* ---------- Life Safety ---------- */
+let lsView="list";
+function lsGroups(){const g={Overdue:[],"Due In 30 Days":[],Booked:[],"Up To Date":[],"Needs A Date":[]};
+  S.inspections.forEach(i=>{const d=nextDue(i);if(i.booked&&days(i.booked)>=0)g.Booked.push(i);else if(!d)g["Needs A Date"].push(i);else if(days(d)<0)g.Overdue.push(i);else if(days(d)<=30)g["Due In 30 Days"].push(i);else g["Up To Date"].push(i)});
+  Object.values(g).forEach(a=>a.sort((x,y)=>(nextDue(x)||"9").localeCompare(nextDue(y)||"9")));return g}
+function vSafety(){
+  const bar=`<div class="bar"><button class="chip ${lsView==="list"?"on":""}" data-ls="list">List</button><button class="chip ${lsView==="year"?"on":""}" data-ls="year">Year Overview</button><button class="btn" id="addinsp">+ Add Inspection</button></div>`;
+  if(lsView==="year")return `<h2>Life Safety · ${new Date().getFullYear()}</h2><p class="sub">Every inspection by month. Blue = due, red = late, green = done.</p>${bar}${yearGrid()}`;
+  const g=lsGroups();
+  return `<h2>Life Safety</h2><p class="sub">Your inspection schedule drives every due date. Tap one to mark it done, log a vendor call, or request a date.</p>${bar}
+  ${Object.entries(g).filter(([k,a])=>a.length).map(([k,a])=>`<h3>${k} · ${a.length}</h3><div class="card">${a.map(i=>{const d=nextDue(i);const st=i.booked&&days(i.booked)>=0?["Booked "+fmt(i.booked),"blue"]:dueState(d);return `<div class="row" tabindex="0" data-insp="${i.id}"><div class="main"><div class="t">${esc(i.name)}</div><div class="m">${esc(i.freq||"")}${i.vendor?" · "+esc(i.vendor):""}${i.lastDone?" · Last Done "+fmt(i.lastDone):""}</div></div><span class="pill ${st[1]}">${esc(st[0])}</span></div>`}).join("")}</div>`).join("")||`<div class="card"><div class="empty">No inspections yet.</div></div>`}`}
+function yearGrid(){const y=new Date().getFullYear();const now=pd(todayISO());const M=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const rows=[...S.inspections].sort((a,b)=>a.name.localeCompare(b.name)).map(i=>{const cells=Array(12).fill("");
+    (i.history||[]).concat(i.lastDone?[{d:i.lastDone}]:[]).forEach(h=>{const d=pd(h.d);if(d&&d.getFullYear()===y)cells[d.getMonth()]="ok"});
+    const f=FREQ[i.freq];
+    if(f>=1&&i.lastDone){let d=i.lastDone;for(let k=0;k<40;k++){d=addMonths(d,f);const x=pd(d);if(x.getFullYear()>y)break;if(x.getFullYear()===y&&cells[x.getMonth()]!=="ok")cells[x.getMonth()]=x<now?"late":"due"}}
+    if(f<1)for(let m=0;m<12;m++)if(!cells[m])cells[m]=new Date(y,m+1,0)<now?"":"due";
+    if(i.nextDue){const x=pd(i.nextDue);if(x.getFullYear()===y&&cells[x.getMonth()]!=="ok")cells[x.getMonth()]=x<now?"late":"due"}
+    return `<tr><td><a href="#safety" data-insp="${i.id}">${esc(i.name)}</a></td>${cells.map(c=>`<td class="${c}">${c==="ok"?"✓":c==="late"?"!":c==="due"?"•":""}</td>`).join("")}</tr>`}).join("");
+  return `<div class="scroll card"><table class="grid"><thead><tr><th>Inspection</th>${M.map(m=>`<th>${m}</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table></div>`}
+function inspFields(){return[{k:"name",label:"Inspection Name",def:""},{k:"freq",label:"How Often",type:"select",opts:Object.keys(FREQ)},{k:"lastDone",label:"Last Done",type:"date"},{k:"nextDue",label:"Next Due (Only If Different From Schedule)",type:"date"},{k:"vendor",label:"Vendor"},{k:"contact",label:"Vendor Contact Name"},{k:"email",label:"Vendor Email",type:"email"},{k:"phone",label:"Vendor Phone",type:"tel"},{k:"notes",label:"Notes",type:"textarea"}]}
+function insp(id){const i=S.inspections.find(x=>x.id===id);if(!i)return;const d=nextDue(i);
+  const st=i.booked&&days(i.booked)>=0?["Booked "+fmt(i.booked),"blue"]:dueState(d);
+  openSheet(`<h2>${esc(i.name)}</h2><p><span class="pill ${st[1]}">${esc(st[0])}</span></p>
+  <dl class="kv"><dt>How Often</dt><dd>${esc(i.freq||"—")}</dd><dt>Last Done</dt><dd>${fmt(i.lastDone)}</dd><dt>Next Due</dt><dd>${fmt(d)}</dd><dt>Vendor</dt><dd>${esc(i.vendor||"—")}${i.contact?" · "+esc(i.contact):""}</dd>
+  ${i.phone?`<dt>Phone</dt><dd><a href="tel:${esc(i.phone)}">${esc(i.phone)}</a></dd>`:""}${i.email?`<dt>Email</dt><dd>${esc(i.email)}</dd>`:""}</dl>
+  ${i.notes?`<p class="note" style="white-space:pre-wrap">${esc(i.notes)}</p>`:""}
+  ${i.what?`<h3>What To Do</h3><p>${esc(i.what)}</p>`:""}${i.applies?`<p class="note">${esc(i.applies)}</p>`:""}
+  ${i.rule?`<details><summary>Code Requirement</summary><p class="note">${esc(i.rule)}</p></details>`:""}
+  ${(i.files||[]).map(f=>`<p><a href="${blobUrl(f)}" target="_blank" rel="noopener">📎 ${esc(f.name)}</a></p>`).join("")}
+  <h3>Vendor Log</h3>${(i.log||[]).length?`<div class="log">${[...i.log].reverse().map(l=>`<p><time>${fmt(l.d)}</time>${esc(l.t)}</p>`).join("")}</div>`:`<p class="note">No calls or notes yet.</p>`}
+  <div class="bar"><button class="chip" data-q="Left Message">Left Message</button><button class="chip" data-q="Scheduled">Scheduled For…</button><button class="chip" data-q="Cancelled — Needs New Date">Cancelled</button><button class="chip" data-q="Invoice Received">Invoice Received</button><button class="chip" data-q="Reinspection Needed">Reinspection Needed</button></div>
+  <label class="f"><span>Or Type A Note</span><input id="i_note" placeholder="e.g. Called Mario, coming 12/3 at 9 AM"></label>
+  <div class="acts"><button class="btn pri" id="i_done">Mark Done</button><button class="btn" id="i_req">Request Schedule</button><button class="btn" id="i_note_s">Save Note</button><button class="btn" id="i_file">Attach Report</button><button class="btn" id="i_edit">Edit</button></div>`);
+  const addLog=t=>{i.log=[...(i.log||[]),{d:todayISO(),t}];save("inspections")};
+  $("#sheet").querySelectorAll("[data-q]").forEach(b=>b.onclick=()=>{const q=b.dataset.q;
+    if(q==="Scheduled")form("Scheduled For",[{k:"date",label:"Visit Date",type:"date"},{k:"note",label:"Note (Optional)"}],{},o=>{if(o.date){i.booked=o.date;addLog("Scheduled for "+fmt(o.date)+(o.note?" — "+o.note:""));render();insp(id)}});
+    else{addLog(q);insp(id)}});
+  $("#i_note_s").onclick=()=>{const v=$("#i_note").value.trim();if(v){addLog(v);insp(id)}};
+  $("#i_done").onclick=()=>form("Mark Done",[{k:"date",label:"Date Completed",type:"date",def:todayISO()},{k:"note",label:"Note (Optional)"},{k:"file",label:"Attach The Report (Optional)",type:"file"}],{},o=>{const prev={lastDone:i.lastDone,nextDue:i.nextDue,booked:i.booked};
+      i.history=[...(i.history||[]),{d:o.date||todayISO(),t:o.note||""}];i.lastDone=o.date||todayISO();i.nextDue="";i.booked="";if(o._file)i.files=[...(i.files||[]),o._file];
+      i.log=[...(i.log||[]),{d:todayISO(),t:"Completed "+fmt(i.lastDone)+(o.note?" — "+o.note:"")}];save("inspections");render();toast("Done. Next due "+fmt(nextDue(i)),()=>{Object.assign(i,prev);i.history.pop();i.log.pop();save("inspections");render()})});
+  $("#i_file").onclick=()=>form("Attach A File",[{k:"file",label:"Report, Invoice Or Photo",type:"file"}],{},o=>{if(o._file){i.files=[...(i.files||[]),o._file];addLog("Attached "+o._file.name);render()}});
+  $("#i_edit").onclick=()=>form("Edit Inspection",inspFields(),i,o=>{Object.assign(i,o);delete i._file;save("inspections");render()},{del:()=>{const k=S.inspections.indexOf(i);S.inspections.splice(k,1);save("inspections");render();toast("Inspection deleted",()=>{S.inspections.splice(k,0,i);save("inspections");render()})}});
+  $("#i_req").onclick=()=>{const cc=["Maintenance","Housekeeping"].map(r=>contactByRole(r.toLowerCase())).filter(Boolean).map(c=>c.email).filter(Boolean).join(",");
+    const subj=`${FAC.name} — Scheduling Request: ${i.name}`;
+    const body=`Hi ${i.contact?i.contact.split(" ")[0]:"there"},\n\nI hope you're doing well. We're due for our ${i.name} at ${FAC.name} (${FAC.addr})${d?", which was due "+fmt(d):""}.\n\nCould you please let us know your next available date and time? Our maintenance team will make sure everything is ready for you.\n\nThank you so much,\n${FAC.admin}\n${FAC.name}\n${FAC.addr}\n${FAC.email}`;
+    addLog("Schedule request drafted");emailSheet(i.email||"",cc,subj,body)}}
+
+/* ---------- Documents ---------- */
+let docFolder="All";
+function vDocs(){let list=S.docs.filter(x=>docFolder==="All"||x.folder===docFolder);list.sort((a,b)=>(a.expires||"9").localeCompare(b.expires||"9"));
+  const missing=S.docs.filter(x=>!x.file).length;
+  return `<h2>Documents</h2><p class="sub">Licenses, insurance, contracts and letters — with expiration reminders. Snap a photo to add one.</p>
+  <div class="bar"><button class="btn pri" id="adddoc">+ Add Document</button>${["All",...DOC_FOLDERS].map(f=>`<button class="chip ${f===docFolder?"on":""}" data-df="${esc(f)}">${esc(f)}</button>`).join("")}</div>
+  ${missing?`<p class="note">${missing} records don't have their file attached yet. Open one and tap Attach File, or send the files and they'll be added.</p>`:""}
+  <div class="card">${list.length?list.map(x=>{const st=expState(x.expires);return `<div class="row" tabindex="0" data-doc="${x.id}"><div class="main"><div class="t">${esc(x.title)}</div><div class="m">${esc(x.folder)}${x.file?" · 📎":" · File Needed"}</div></div><span class="pill ${st[1]}">${esc(st[0])}</span></div>`}).join(""):`<div class="empty">No documents here yet.</div>`}</div>`}
+function docFields(){return[{k:"file",label:"Photo Or PDF",type:"file"},{k:"title",label:"Title"},{k:"folder",label:"Folder",type:"select",opts:DOC_FOLDERS},{k:"expires",label:"Expiration Date",type:"date"},{k:"notes",label:"Notes",type:"textarea"}]}
+function addDoc(){form("Add Document",docFields(),{folder:"Licenses & Certificates"},o=>{const f=o._file;delete o._file;S.docs.push({id:uid(),...o,file:f||null,added:todayISO()});save("docs");render();toast("Document added")},
+  {intro:sample?"Snap a photo of the page and the title, folder and expiration fill in for you. Check them before saving.":"",onFile:readDoc})}
+async function readDoc(file){if(!sample||!file||!file.type.startsWith("image/"))return;
+  try{const lim=await sample.limits?.();if(lim&&!lim.images)return}catch(e){}
+  const n=$(".sheet .note");if(n)n.textContent="Reading the document…";
+  try{const r=await sample.json(`Read this facility document photo for ${FAC.name}. Return JSON {"title": short Title Case name like "DOH License" or "Elevator Certificate – Car 2", "folder": one of ${JSON.stringify(DOC_FOLDERS)}, "expires": "YYYY-MM-DD" or "" if none printed, "notes": one short line with key numbers}.`,{images:[file],modelTier:"quick"});
+    if(r){if(r.title&&!$("#f_title").value)$("#f_title").value=r.title;if(r.folder&&DOC_FOLDERS.includes(r.folder))$("#f_folder").value=r.folder;if(r.expires)$("#f_expires").value=r.expires;if(r.notes&&!$("#f_notes").value)$("#f_notes").value=r.notes}
+    if(n)n.textContent="Filled in from the photo. Check before saving."}catch(e){if(n)n.textContent="Couldn't read it — fill in the fields."}}
+function doc(id){const x=S.docs.find(d=>d.id===id);if(!x)return;const st=expState(x.expires);
+  openSheet(`<h2>${esc(x.title)}</h2><p><span class="pill ${st[1]}">${esc(st[0])}</span></p><dl class="kv"><dt>Folder</dt><dd>${esc(x.folder)}</dd><dt>Added</dt><dd>${fmt(x.added)}</dd></dl>
+  ${x.notes?`<p style="white-space:pre-wrap">${esc(x.notes)}</p>`:""}
+  ${x.file?`<p><a class="btn pri" href="${blobUrl(x.file)}" target="_blank" rel="noopener">Open File</a></p>${x.file.type&&x.file.type.startsWith("image/")?`<img src="${blobUrl(x.file)}" alt="" style="max-width:100%;border-radius:10px;border:1px solid var(--line)">`:""}`:`<p class="note">No file attached yet.</p>`}
+  ${(x.more||[]).map(f=>`<p><a href="${blobUrl(f)}" target="_blank" rel="noopener">📎 ${esc(f.name)}</a></p>`).join("")}
+  <div class="acts"><button class="btn" id="d_file">${x.file?"Replace File":"Attach File"}</button><button class="btn" id="d_edit">Edit</button><button class="btn" id="d_todo">Make A To-Do</button></div>`);
+  $("#d_file").onclick=()=>form("Attach File",[{k:"file",label:"Photo Or PDF",type:"file"}],{},o=>{if(o._file){x.file=o._file;save("docs");render();doc(id)}});
+  $("#d_edit").onclick=()=>form("Edit Document",docFields().slice(1),x,o=>{Object.assign(x,o);save("docs");render()},{del:()=>{const k=S.docs.indexOf(x);S.docs.splice(k,1);save("docs");render();toast("Document deleted",()=>{S.docs.splice(k,0,x);save("docs");render()})}});
+  $("#d_todo").onclick=()=>{S.todos.push({id:uid(),title:"Renew: "+x.title,cat:"Compliance & Survey",due:x.expires||"",notes:"",created:todayISO()});save("todos");closeSheet();toast("Added to To-Do")}}
+
+/* ---------- QAPI ---------- */
+function vQapi(){const ms=[...S.qapi].sort((a,b)=>b.date.localeCompare(a.date));
+  const sinceDate=(S.facility.items.find(k=>/last survey/i.test(k.k))||{}).v||"";
+  return `<h2>QAPI</h2><p class="sub">Meetings, department reports and sign-in sheets — ready for survey.</p>
+  <div class="bar"><button class="btn pri" id="addmeet">+ Add Meeting</button><button class="btn" id="binder">Survey Binder</button></div>
+  <div class="card">${ms.length?ms.map(m=>{const rep=(m.depts||[]).filter(d=>d.done).length,tot=(m.depts||[]).length;return `<div class="row" tabindex="0" data-meet="${m.id}"><div class="main"><div class="t">${esc(m.title)}</div><div class="m">${fmt(m.date)} · ${rep} of ${tot} Departments Reported · ${m.signin?"Sign-In Sheet ✓":"No Sign-In Sheet"}</div></div><span class="pill ${tot&&rep===tot?"green":rep?"amber":"grey"}">${tot?Math.round(rep/tot*100)+"%":"—"}</span></div>`}).join(""):`<div class="empty">No meetings yet.</div>`}</div>
+  ${sinceDate?`<p class="note">Last survey on file: ${esc(sinceDate)}</p>`:""}`}
+function meet(id){const m=S.qapi.find(x=>x.id===id);if(!m)return;const miss=(m.depts||[]).filter(d=>!d.done);
+  openSheet(`<h2>${esc(m.title)}</h2><p class="note">${fmt(m.date)}</p>
+  <p>${m.signin?`<a href="${blobUrl(m.signin)}" target="_blank" rel="noopener">📎 Sign-In Sheet</a>`:"<b>No sign-in sheet yet.</b>"}</p>
+  <h3>Departments</h3><div class="card">${(m.depts||[]).map((d,k)=>`<div class="row"><button class="check ${d.done?"done":""}" data-dk="${k}" aria-label="Toggle ${esc(d.name)}"></button><div class="main"><div class="t">${esc(d.name)}</div><div class="m">${esc(d.report||"")}${(d.files||[]).map(f=>` · <a href="${blobUrl(f)}" target="_blank" rel="noopener">📎 ${esc(f.name)}</a>`).join("")}</div></div><button class="btn" data-dup="${k}">Upload</button></div>`).join("")}</div>
+  ${m.notes?`<p class="note" style="white-space:pre-wrap">${esc(m.notes)}</p>`:""}
+  <div class="acts"><button class="btn pri" id="q_sign">${m.signin?"Replace":"Upload"} Sign-In Sheet</button>${miss.length?`<button class="btn" id="q_rem">Remind Missing (${miss.length})</button>`:""}<button class="btn" id="q_edit">Edit</button></div>`);
+  $("#sheet").querySelectorAll("[data-dk]").forEach(b=>b.onclick=()=>{const d=m.depts[+b.dataset.dk];d.done=!d.done;save("qapi");render();meet(id)});
+  $("#sheet").querySelectorAll("[data-dup]").forEach(b=>b.onclick=()=>{const d=m.depts[+b.dataset.dup];form("Upload — "+d.name,[{k:"report",label:"Report Name",def:d.report||""},{k:"file",label:"File",type:"file"}],{},o=>{d.report=o.report;if(o._file){d.files=[...(d.files||[]),o._file];d.done=true}save("qapi");render();meet(id)})});
+  $("#q_sign").onclick=()=>form("Sign-In Sheet",[{k:"file",label:"Photo Or PDF",type:"file"}],{},o=>{if(o._file){m.signin=o._file;save("qapi");render();meet(id)}});
+  if($("#q_rem"))$("#q_rem").onclick=()=>{const em=miss.map(d=>(S.contacts.find(c=>c.dept===d.name)||{}).email).filter(Boolean).join(",");
+    emailSheet(em,"",`${m.title} — QAPI Report Needed`,`Hi all,\n\nYour department's report for the ${m.title} (${fmt(m.date)}) hasn't been received yet. Please submit it this week.\n\nStill needed from: ${miss.map(d=>d.name).join(", ")}\n\nThank you,\n${FAC.admin}`)};
+  $("#q_edit").onclick=()=>form("Edit Meeting",[{k:"title",label:"Meeting Title"},{k:"date",label:"Date",type:"date"},{k:"notes",label:"Notes",type:"textarea"}],m,o=>{Object.assign(m,o);save("qapi");render()},{del:()=>{const k=S.qapi.indexOf(m);S.qapi.splice(k,1);save("qapi");render();toast("Meeting deleted",()=>{S.qapi.splice(k,0,m);save("qapi");render()})}})}
+function binder(){const ls=(S.facility.items.find(k=>/last survey/i.test(k.k))||{}).v;const since=ls&&/^\d{4}-\d{2}-\d{2}$/.test(ls)?ls:"";
+  const ms=S.qapi.filter(m=>!since||m.date>=since).sort((a,b)=>a.date.localeCompare(b.date));
+  openSheet(`<h2>Survey Binder</h2><p class="note">Every QAPI sign-in sheet${since?" since the last survey ("+fmt(since)+")":""}, oldest first. Open each to print. Set "Last Survey Date" in Contacts → Facility Numbers to narrow this.</p>
+  <div class="card">${ms.map(m=>`<div class="row"><div class="main"><div class="t">${esc(m.title)}</div><div class="m">${fmt(m.date)}</div></div>${m.signin?`<a class="btn" href="${blobUrl(m.signin)}" target="_blank" rel="noopener">Open</a>`:`<span class="pill red">Missing</span>`}</div>`).join("")||`<div class="empty">No meetings.</div>`}</div>
+  <div class="acts"><button class="btn" id="b_x">Close</button></div>`);$("#b_x").onclick=closeSheet}
+
+/* ---------- Time Off ---------- */
+let calMonth=null;
+function vTimeoff(){if(!calMonth){const d=new Date();calMonth=[d.getFullYear(),d.getMonth()]}
+  const [y,mo]=calMonth;const first=new Date(y,mo,1),start=new Date(y,mo,1-first.getDay());const t=todayISO();let cells="";
+  for(let k=0;k<42;k++){const d=new Date(start);d.setDate(start.getDate()+k);const s=iso(d);
+    const who=S.timeoff.filter(r=>r.status!=="Denied"&&r.start<=s&&(r.end||r.start)>=s);
+    cells+=`<div class="${d.getMonth()!==mo?"x":""} ${s===t?"td":""}"><b>${d.getDate()}</b>${who.map(r=>`<i class="${r.status==="Pending"?"p":""}" data-tor="${r.id}">${esc(r.name.split(" ")[0])}</i>`).join("")}</div>`}
+  const pend=S.timeoff.filter(r=>r.status==="Pending"),up=S.timeoff.filter(r=>r.status==="Approved"&&(r.end||r.start)>=t).sort((a,b)=>a.start.localeCompare(b.start));
+  return `<h2>Time Off</h2><p class="sub">Department heads and unit managers. Faded names are waiting for your approval.</p>
+  <div class="bar"><button class="btn pri" id="addtor">+ Add Request</button></div>
+  <h3>Needs Your Approval · ${pend.length}</h3><div class="card">${pend.length?pend.map(r=>torRow(r)).join(""):`<div class="empty">Nothing waiting.</div>`}</div>
+  <h3>${first.toLocaleDateString("en-US",{month:"long",year:"numeric"})}</h3>
+  <div class="bar"><button class="btn" id="cprev" aria-label="Previous month">‹ Previous</button><button class="btn" id="cnext" aria-label="Next month">Next ›</button></div>
+  <div class="cal">${["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(d=>`<div class="h">${d}</div>`).join("")}${cells}</div>
+  <h3>Coming Up</h3><div class="card">${up.length?up.map(r=>torRow(r)).join(""):`<div class="empty">No approved time off coming up.</div>`}</div>`}
+function torRow(r){return `<div class="row" tabindex="0" data-tor="${r.id}"><div class="main"><div class="t">${esc(r.name)} · ${esc(r.dept||"")}</div><div class="m">${fmt(r.start)}${r.end&&r.end!==r.start?" – "+fmt(r.end):""} · ${esc(r.type||"")}${r.reason?" · "+esc(r.reason):""}</div></div><span class="pill ${r.status==="Approved"?"green":r.status==="Denied"?"grey":"amber"}">${esc(r.status)}</span></div>`}
+function overlaps(r){return S.timeoff.filter(o=>o.id!==r.id&&o.status!=="Denied"&&o.start<=(r.end||r.start)&&(o.end||o.start)>=r.start)}
+function tor(id){const r=S.timeoff.find(x=>x.id===id);if(!r)return;const ov=overlaps(r);
+  openSheet(`<h2>${esc(r.name)}</h2><p class="note">${esc(r.dept||"")} · ${esc(r.type||"")}</p><dl class="kv"><dt>Dates</dt><dd>${fmt(r.start)}${r.end&&r.end!==r.start?" – "+fmt(r.end):""}</dd><dt>Status</dt><dd>${esc(r.status)}</dd>${r.reason?`<dt>Reason</dt><dd>${esc(r.reason)}</dd>`:""}</dl>
+  ${ov.length?`<p class="pill amber" style="white-space:normal">Overlaps with ${ov.map(o=>esc(o.name)).join(", ")}</p>`:""}
+  ${r.file?`<p><a href="${blobUrl(r.file)}" target="_blank" rel="noopener">📎 Signed Form</a></p>`:""}
+  <div class="acts">${r.status!=="Approved"?`<button class="btn pri" id="r_ok">Approve</button>`:""}${r.status!=="Denied"?`<button class="btn warn" id="r_no">Deny</button>`:""}<button class="btn" id="r_edit">Edit</button></div>`);
+  const set=s=>{const p=r.status;r.status=s;r.decided=todayISO();save("timeoff");render();toast(s+": "+r.name,()=>{r.status=p;save("timeoff");render()})};
+  if($("#r_ok"))$("#r_ok").onclick=()=>{closeSheet();set("Approved")};if($("#r_no"))$("#r_no").onclick=()=>{closeSheet();set("Denied")};
+  $("#r_edit").onclick=()=>form("Edit Request",torFields(),r,o=>{const f=o._file;delete o._file;Object.assign(r,o);if(f)r.file=f;save("timeoff");render()},{del:()=>{const k=S.timeoff.indexOf(r);S.timeoff.splice(k,1);save("timeoff");render();toast("Request deleted",()=>{S.timeoff.splice(k,0,r);save("timeoff");render()})}})}
+function torFields(){return[{k:"name",label:"Name"},{k:"dept",label:"Department",type:"select",opts:DEPTS},{k:"start",label:"First Day Off",type:"date"},{k:"end",label:"Last Day Off",type:"date"},{k:"type",label:"Type",type:"select",opts:["Vacation","Personal","Sick","Holiday","Half Day","Other"]},{k:"status",label:"Status",type:"select",opts:["Pending","Approved","Denied"]},{k:"reason",label:"Reason (Optional)"},{k:"file",label:"Signed Form (Optional)",type:"file"}]}
+
+/* ---------- Finance ---------- */
+function vFinance(){const ms=[...S.finance.months].sort((a,b)=>a.month.localeCompare(b.month));const tg=S.finance.target;
+  const rows=ms.map((m,k)=>{const p=ms[k-1];const ch=(a,b)=>a!=null&&b!=null&&b!==0?((a-b)/Math.abs(b)*100).toFixed(1)+"%":"";
+    const gap=m.ebitdar!=null&&tg?m.ebitdar-tg:null;
+    return `<tr data-fin="${esc(m.month)}" tabindex="0" style="cursor:pointer"><td>${pd(m.month+"-01").toLocaleDateString("en-US",{month:"short",year:"numeric"})}</td><td>${m.census??"—"}</td><td>${m.medicare??"—"}</td><td>${money(m.revenue)}</td><td>${money(m.expenses)}</td><td><b>${money(m.ebitdar)}</b>${p?`<br><small class="note">${ch(m.ebitdar,p.ebitdar)}</small>`:""}</td><td style="color:${m.netIncome==null?"inherit":m.netIncome>=0?"var(--green)":"var(--red)"}">${money(m.netIncome)}</td><td style="color:${gap==null?"inherit":gap>=0?"var(--green)":"var(--red)"}">${gap==null?"—":money(gap)}</td></tr>`}).join("");
+  return `<h2>Finance</h2><p class="sub">Monthly results against your EBITDAR target. Tap a month to edit it.</p>
+  <div class="bar"><button class="btn pri" id="addfin">+ Add Month</button><button class="btn" id="settg">Target: ${money(tg)} / Month</button></div>
+  <div class="scroll card"><table class="fin"><thead><tr><th>Month</th><th>Avg Census</th><th>Medicare ADC</th><th>Revenue</th><th>Expenses</th><th>EBITDAR</th><th>Net Income</th><th>Vs Target</th></tr></thead><tbody>${rows||`<tr><td colspan="8" class="empty">No months yet. Add September from Jack's financials to start.</td></tr>`}</tbody></table></div>
+  <p class="note">Ask anything about these numbers on the Ask tab, e.g. "How did October compare with September?"</p>`}
+function finFields(){return[{k:"month",label:"Month",type:"month"},{k:"census",label:"Average Daily Census",type:"number"},{k:"medicare",label:"Medicare Average Daily Census",type:"number"},{k:"revenue",label:"Total Revenue ($)",type:"number"},{k:"expenses",label:"Total Expenses ($)",type:"number"},{k:"ebitdar",label:"EBITDAR ($)",type:"number"},{k:"netIncome",label:"Net Income ($)",type:"number"},{k:"notes",label:"Notes",type:"textarea"}]}
+
+/* ---------- Daily Tracker ---------- */
+function dayFields(){return[{k:"date",label:"Date",type:"date"},{k:"census",label:"Census",type:"number"},{k:"nHours",label:"In-House Nursing Hours (Maple)",type:"number"},{k:"nCost",label:"In-House Nursing Cost ($)",type:"number"},{k:"aHours",label:"Agency Hours (ESHYFT)",type:"number"},{k:"aCost",label:"Agency Cost ($)",type:"number"},{k:"notes",label:"Notes",type:"textarea"}]}
+const num=v=>v===""||v==null||isNaN(+v)?null:+v;
+function ppdOf(list){const cd=list.reduce((a,d)=>a+(num(d.census)||0),0);if(!cd)return{};const sum=k=>{const xs=list.map(d=>num(d[k]));return xs.some(x=>x!=null)?xs.reduce((a,x)=>a+(x||0),0):null};
+  const nC=sum("nCost"),aC=sum("aCost"),nH=sum("nHours"),aH=sum("aHours");
+  return{census:cd/list.length,nPPD:nC==null?null:nC/cd,aPPD:aC==null?null:aC/cd,tPPD:nC==null&&aC==null?null:((nC||0)+(aC||0))/cd,hppd:nH==null&&aH==null?null:((nH||0)+(aH||0))/cd}}
+function weekStart(s){const d=pd(s);d.setDate(d.getDate()-d.getDay());return iso(d)}
+function vDaily(){const T=S.daily.targets;const ds=[...S.daily.days].sort((a,b)=>b.date.localeCompare(a.date));
+  const m2=n=>n==null?"—":"$"+n.toFixed(2);const vs=(n,t)=>n==null||!t?"":n<=t?"green":"red";
+  const L=ds[0];const p=L?ppdOf([L]):{};
+  const card=(lbl,val,cls,go)=>`<div class="stat ${cls==="red"?"red":""}" ${go||""}><b style="${cls==="green"?"color:var(--green)":""}">${val}</b><span>${lbl}</span></div>`;
+  const top=L?`<p class="sub">Latest: ${fmt(L.date)}</p><div class="stats">
+    ${card("Census · Target "+T.census,L.census??"—",num(L.census)!=null&&num(L.census)<T.census?"red":"green")}
+    ${card("Nursing PPD · Target $"+T.nursing,m2(p.nPPD),vs(p.nPPD,T.nursing))}
+    ${card("Agency PPD · Target $"+T.agency,m2(p.aPPD),vs(p.aPPD,T.agency))}
+    ${card("Nursing Hours PPD",p.hppd==null?"—":p.hppd.toFixed(2),"")}</div>`:"";
+  const wk={};ds.forEach(d=>(wk[weekStart(d.date)]=wk[weekStart(d.date)]||[]).push(d));
+  const ws=Object.keys(wk).sort().reverse();
+  const wrows=ws.slice(0,8).map((w,k)=>{const a=ppdOf(wk[w]),b=ws[k+1]?ppdOf(wk[ws[k+1]]):{};
+    const ch=(x,y)=>x!=null&&y!=null?`<br><small style="color:${x<=y?"var(--green)":"var(--red)"}">${x<=y?"▼":"▲"} $${Math.abs(x-y).toFixed(2)}</small>`:"";
+    const e=pd(w);e.setDate(e.getDate()+6);
+    return `<tr><td>${fmt(w).replace(/, \d{4}$/,"")} – ${fmt(iso(e)).replace(/, \d{4}$/,"")}<br><small class="note">${wk[w].length} day${wk[w].length>1?"s":""}</small></td><td>${a.census?a.census.toFixed(1):"—"}</td><td style="color:var(--${vs(a.nPPD,T.nursing)||"ink"})">${m2(a.nPPD)}${ch(a.nPPD,b.nPPD)}</td><td style="color:var(--${vs(a.aPPD,T.agency)||"ink"})">${m2(a.aPPD)}${ch(a.aPPD,b.aPPD)}</td><td>${m2(a.tPPD)}</td></tr>`}).join("");
+  const drows=ds.slice(0,21).map(d=>{const q=ppdOf([d]);return `<tr data-day="${esc(d.date)}" tabindex="0" style="cursor:pointer"><td>${pd(d.date).toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}</td><td>${d.census??"—"}</td><td>${money(num(d.nCost))}</td><td style="color:var(--${vs(q.nPPD,T.nursing)||"ink"})">${m2(q.nPPD)}</td><td>${money(num(d.aCost))}</td><td style="color:var(--${vs(q.aPPD,T.agency)||"ink"})">${m2(q.aPPD)}</td></tr>`}).join("");
+  return `<h2>Daily Tracker</h2><p class="sub">Census and nursing cost per patient day against budget. Green is at or under target.</p>
+  <div class="bar"><button class="btn pri" id="addday">+ Add Day</button><button class="btn" id="settgd">Targets: $${T.nursing} Nursing · $${T.agency} Agency · ${T.census} Census</button></div>
+  ${top}
+  <h3>By Week (Sun–Sat)</h3><div class="scroll card"><table class="fin"><thead><tr><th>Week</th><th>Avg Census</th><th>Nursing PPD</th><th>Agency PPD</th><th>Total PPD</th></tr></thead><tbody>${wrows||`<tr><td colspan="5" class="empty">No weeks yet.</td></tr>`}</tbody></table></div>
+  <h3>By Day</h3><div class="scroll card"><table class="fin"><thead><tr><th>Day</th><th>Census</th><th>Nursing Cost</th><th>Nursing PPD</th><th>Agency Cost</th><th>Agency PPD</th></tr></thead><tbody>${drows||`<tr><td colspan="6" class="empty">No days yet. Tap Add Day and type today's census and costs.</td></tr>`}</tbody></table></div>
+  <p class="note">Tap a day to edit it. Weekly PPD is total cost ÷ total patient days. Staff names never appear here.</p>`}
+
+/* ---------- Contacts ---------- */
+function vContacts(){const cs=[...S.contacts].sort((a,b)=>(a.role||"").localeCompare(b.role||""));
+  return `<h2>Contacts</h2><p class="sub">Staff, vendors and agencies. Tap to call or email.</p>
+  <div class="bar"><button class="btn pri" id="addcon">+ Add Contact</button></div>
+  <div class="card">${cs.map(c=>`<div class="row" tabindex="0" data-con="${c.id}"><div class="main"><div class="t">${esc(c.name)}</div><div class="m">${esc(c.role||"")}${c.company?" · "+esc(c.company):""}</div></div>${c.phone?`<a class="btn" href="tel:${esc(c.phone)}" data-stop>Call</a>`:""}</div>`).join("")||`<div class="empty">No contacts yet.</div>`}</div>
+  <h3>Facility Numbers</h3><div class="card">${S.facility.items.map((k,n)=>`<div class="row" tabindex="0" data-fac="${n}"><div class="main"><div class="t">${esc(k.k)}</div><div class="m">${esc(k.v)}</div></div></div>`).join("")}<div class="row" tabindex="0" id="addfac"><div class="main"><div class="t">+ Add A Number</div></div></div></div>`}
+function conFields(){return[{k:"name",label:"Name"},{k:"role",label:"Role"},{k:"company",label:"Company"},{k:"dept",label:"Department (For Staff)",type:"select",opts:["",...DEPTS]},{k:"email",label:"Email",type:"email"},{k:"phone",label:"Phone",type:"tel"},{k:"notes",label:"Notes",type:"textarea"}]}
+function con(id){const c=S.contacts.find(x=>x.id===id);if(!c)return;
+  openSheet(`<h2>${esc(c.name)}</h2><p class="note">${esc(c.role||"")}${c.company?" · "+esc(c.company):""}</p><dl class="kv">${c.email?`<dt>Email</dt><dd>${esc(c.email)}</dd>`:""}${c.phone?`<dt>Phone</dt><dd><a href="tel:${esc(c.phone)}">${esc(c.phone)}</a></dd>`:""}</dl>${c.notes?`<p class="note" style="white-space:pre-wrap">${esc(c.notes)}</p>`:""}
+  <div class="acts">${c.email?`<button class="btn pri" id="c_em">Email</button>`:""}<button class="btn" id="c_edit">Edit</button></div>`);
+  if($("#c_em"))$("#c_em").onclick=()=>emailSheet(c.email,"","",`Hi ${c.name.split(" ")[0]},\n\n\n\nThank you,\n${FAC.admin}`);
+  $("#c_edit").onclick=()=>form("Edit Contact",conFields(),c,o=>{Object.assign(c,o);save("contacts");render()},{del:()=>{const k=S.contacts.indexOf(c);S.contacts.splice(k,1);save("contacts");render();toast("Contact deleted",()=>{S.contacts.splice(k,0,c);save("contacts");render()})}})}
+
+/* ---------- Search ---------- */
+function stem(w){return w.toLowerCase().replace(/(ies)$/,"y").replace(/(es|s)$/,"")}
+function vSearch(q){const words=q.toLowerCase().split(/\W+/).filter(w=>w.length>1&&!["do","we","have","the","a","an","is","are","where","what","when","our","my","for","of","to","in","on","and","any"].includes(w)).map(stem);
+  const hit=(...f)=>{const txt=f.join(" ").toLowerCase().split(/\W+/).map(stem);let sc=0;words.forEach(w=>{if(txt.some(t=>t===w))sc+=2;else if(txt.some(t=>t.startsWith(w)||w.startsWith(t)&&t.length>3))sc+=1});return sc};
+  const R=[];
+  S.inspections.forEach(i=>{const s=hit(i.name,i.vendor,i.contact,i.notes,(i.log||[]).map(l=>l.t).join(" "));if(s)R.push({s,t:i.name,k:"Life Safety",a:`data-insp="${i.id}"`})});
+  S.docs.forEach(x=>{const s=hit(x.title,x.folder,x.notes,x.file&&x.file.name);if(s)R.push({s,t:x.title,k:"Documents",a:`data-doc="${x.id}"`})});
+  S.todos.forEach(t=>{const s=hit(t.title,t.cat,t.notes);if(s)R.push({s,t:t.title,k:"To-Do"+(t.done?" (Done)":""),a:`data-todo="${t.id}"`})});
+  S.contacts.forEach(c=>{const s=hit(c.name,c.role,c.company,c.notes);if(s)R.push({s,t:c.name,k:"Contacts",a:`data-con="${c.id}"`})});
+  S.qapi.forEach(m=>{const s=hit(m.title,m.notes,(m.depts||[]).map(d=>d.name+" "+(d.report||"")).join(" "));if(s)R.push({s,t:m.title,k:"QAPI",a:`data-meet="${m.id}"`})});
+  S.timeoff.forEach(r=>{const s=hit(r.name,r.dept,r.type);if(s)R.push({s,t:r.name+" · "+fmt(r.start),k:"Time Off",a:`data-tor="${r.id}"`})});
+  R.sort((a,b)=>b.s-a.s);
+  return `<h2>Results For “${esc(q)}”</h2><p class="sub">${R.length} found. ${sample?`Not finding it? <a href="#ask" id="toask">Ask instead</a>.`:""}</p><div class="card">${R.map(r=>`<div class="row" tabindex="0" ${r.a}><div class="main"><div class="t">${esc(r.t)}</div><div class="m">${esc(r.k)}</div></div></div>`).join("")||`<div class="empty">Nothing matched.</div>`}</div>`}
+
+/* ---------- Ask ---------- */
+let lastAnswer="";
+function snapshot(){return JSON.stringify({today:todayISO(),facility:FAC,
+  inspections:S.inspections.map(i=>({name:i.name,freq:i.freq,lastDone:i.lastDone,nextDue:nextDue(i),booked:i.booked,vendor:i.vendor,contact:i.contact,notes:i.notes,log:(i.log||[]).slice(-5)})),
+  documents:S.docs.map(x=>({title:x.title,folder:x.folder,expires:x.expires,notes:x.notes,hasFile:!!x.file})),
+  todos:S.todos.map(t=>({title:t.title,cat:t.cat,due:t.due,done:t.done,notes:t.notes,log:(t.log||[]).slice(-3)})),
+  contacts:S.contacts.map(c=>({name:c.name,role:c.role,company:c.company,email:c.email,phone:c.phone})),
+  qapi:S.qapi.map(m=>({title:m.title,date:m.date,signin:!!m.signin,reported:(m.depts||[]).filter(d=>d.done).map(d=>d.name),missing:(m.depts||[]).filter(d=>!d.done).map(d=>d.name)})),
+  timeoff:S.timeoff.map(r=>({name:r.name,dept:r.dept,start:r.start,end:r.end,status:r.status,type:r.type})),
+  finance:S.finance,dailyTracker:{targets:S.daily.targets,days:[...S.daily.days].sort((a,b)=>a.date.localeCompare(b.date)).slice(-60)},facilityNumbers:S.facility.items})}
+function vAsk(){return `<h2>Ask</h2><p class="sub">Ask in plain words about anything in the Hub. Answers come only from what's stored here.</p>
+  ${sample?`<form id="askf" class="quick"><input id="askq" placeholder="e.g. What's overdue before the fire inspection?" aria-label="Question"><button class="btn pri">Ask</button></form>
+  <div class="bar">${["What's overdue right now?","When does the boiler certificate expire?","Which QAPI reports are still missing?","What contracts renew in the next year?","Who is off next week?"].map(s=>`<button class="chip" data-ask="${esc(s)}">${esc(s)}</button>`).join("")}</div>
+  <div id="ans">${lastAnswer?`<div class="answer">${esc(lastAnswer)}</div>`:""}</div>`:`<div class="card"><div class="empty">Asking isn't available in this view. Search at the top still works.</div></div>`}`}
+let askCtl=null;
+async function ask(q){if(!sample||!q)return;$("#askq").value=q;const box=$("#ans");box.innerHTML=`<div class="answer">Thinking…</div>`;
+  if(askCtl)askCtl.abort();askCtl=new AbortController();
+  try{const r=await sample(`You are the assistant inside the Castle Hill Hub for Michael Lifschutz, Administrator of ${FAC.name}. Answer his question using ONLY the JSON data below. If the answer isn't in the data, say so plainly and suggest what to add. Be brief and concrete: lead with the answer, then short lines. Use Title Case names as they appear. Dates like "Nov 18, 2026". No markdown symbols like ** or #.\n\nDATA:\n${snapshot()}\n\nQUESTION: ${q}`,
+    {signal:askCtl.signal,modelTier:"default",onText:({text})=>{lastAnswer=text;box.innerHTML=`<div class="answer">${esc(text)}</div>`}});
+    lastAnswer=r.text;box.innerHTML=`<div class="answer">${esc(r.text)}</div>`}
+  catch(e){if(e&&e.name==="AbortError")return;box.innerHTML=`<div class="answer">${e&&e.code==="rate_limited"?"Too many questions at once — wait a minute and try again.":e&&e.code==="not_granted"?"Asking needs your OK — tap Ask again and allow it.":"Couldn't get an answer right now."}</div>`}}
+
+/* ---------- render + routing ---------- */
+let searchQ="";
+function route(){const h=location.hash.replace("#","");return TABS.some(t=>t[0]===h)?h:"today"}
+function render(){const r=searchQ?"":route();
+  $("#nav").innerHTML=TABS.map(([k,l])=>`<a href="#${k}" class="${k===r?"on":""}">${l}</a>`).join("");
+  const V={today:vToday,todo:vTodo,safety:vSafety,docs:vDocs,qapi:vQapi,timeoff:vTimeoff,finance:vFinance,daily:vDaily,contacts:vContacts,ask:vAsk};
+  $("#view").innerHTML=searchQ?vSearch(searchQ):(!loaded&&db?`<div class="empty">Loading your Hub…</div>`:V[r]());
+  wire()}
+function wire(){const v=$("#view");
+  v.querySelectorAll("[data-go]").forEach(e=>e.onclick=()=>{location.hash=e.dataset.go});
+  v.querySelectorAll("[data-need]").forEach(e=>e.onclick=()=>NEEDS[+e.dataset.need].go());
+  v.querySelectorAll("[data-todo]").forEach(e=>e.onclick=ev=>{if(ev.target.closest("[data-tick]"))return;todo(e.dataset.todo)});
+  v.querySelectorAll("[data-tick]").forEach(e=>e.onclick=ev=>{ev.stopPropagation();tick(e.dataset.tick)});
+  v.querySelectorAll("[data-tf]").forEach(e=>e.onclick=()=>{todoFilter=e.dataset.tf;render()});
+  v.querySelectorAll("[data-insp]").forEach(e=>e.onclick=ev=>{ev.preventDefault();insp(e.dataset.insp)});
+  v.querySelectorAll("[data-ls]").forEach(e=>e.onclick=()=>{lsView=e.dataset.ls;render()});
+  v.querySelectorAll("[data-doc]").forEach(e=>e.onclick=()=>doc(e.dataset.doc));
+  v.querySelectorAll("[data-df]").forEach(e=>e.onclick=()=>{docFolder=e.dataset.df;render()});
+  v.querySelectorAll("[data-meet]").forEach(e=>e.onclick=()=>meet(e.dataset.meet));
+  v.querySelectorAll("[data-tor]").forEach(e=>e.onclick=ev=>{ev.stopPropagation();tor(e.dataset.tor)});
+  v.querySelectorAll("[data-con]").forEach(e=>e.onclick=ev=>{if(ev.target.closest("[data-stop]"))return;con(e.dataset.con)});
+  v.querySelectorAll("[data-fac]").forEach(e=>e.onclick=()=>{const it=S.facility.items[+e.dataset.fac];form("Edit Number",[{k:"k",label:"Label"},{k:"v",label:"Value"}],it,o=>{Object.assign(it,o);save("facility");render()},{del:()=>{S.facility.items.splice(+e.dataset.fac,1);save("facility");render()}})});
+  v.querySelectorAll("[data-fin]").forEach(e=>e.onclick=()=>{const m=S.finance.months.find(x=>x.month===e.dataset.fin);form("Edit Month",finFields(),m,o=>{Object.assign(m,o);save("finance");render()},{del:()=>{S.finance.months=S.finance.months.filter(x=>x!==m);save("finance");render()}})});
+  v.querySelectorAll("[data-ask]").forEach(e=>e.onclick=()=>ask(e.dataset.ask));
+  const on=(id,fn)=>{const el=v.querySelector("#"+id);if(el)el.onclick=fn};
+  const qa=v.querySelector("#qadd");if(qa)qa.onsubmit=e=>{e.preventDefault();const t=$("#qtext").value.trim();if(!t)return;S.todos.push({id:uid(),title:t,cat:guessCat(t),due:parseDue(t),notes:"",created:todayISO()});save("todos");render();toast("Added to "+guessCat(t))};
+  const af=v.querySelector("#askf");if(af)af.onsubmit=e=>{e.preventDefault();ask($("#askq").value.trim())};
+  on("addinsp",()=>form("Add Inspection",inspFields(),{freq:"Annual"},o=>{S.inspections.push({id:uid(),...o,log:[],history:[]});save("inspections");render()}));
+  on("adddoc",addDoc);
+  on("addmeet",()=>form("Add QAPI Meeting",[{k:"title",label:"Meeting Title",def:"Q4 2026 Quarterly Meeting"},{k:"date",label:"Date",type:"date"},{k:"notes",label:"Notes",type:"textarea"}],{},o=>{const dp=S.qapi.length?[...S.qapi].sort((a,b)=>b.date.localeCompare(a.date))[0].depts.map(d=>({name:d.name,done:false})):DEPTS.map(n=>({name:n,done:false}));S.qapi.push({id:uid(),...o,depts:dp});save("qapi");render()}));
+  on("binder",binder);
+  on("addtor",()=>form("Add Time Off Request",torFields(),{status:"Pending",type:"Vacation",start:todayISO()},o=>{const f=o._file;delete o._file;const r={id:uid(),...o,file:f||null,created:todayISO()};S.timeoff.push(r);save("timeoff");render();const ov=overlaps(r);if(ov.length)toast("Heads up: overlaps with "+ov.map(x=>x.name).join(", "))}));
+  on("cprev",()=>{let[y,m]=calMonth;m--;if(m<0){m=11;y--}calMonth=[y,m];render()});on("cnext",()=>{let[y,m]=calMonth;m++;if(m>11){m=0;y++}calMonth=[y,m];render()});
+  on("addfin",()=>form("Add Month",finFields(),{},o=>{if(!o.month)return;S.finance.months=S.finance.months.filter(x=>x.month!==o.month);S.finance.months.push(o);save("finance");render()}));
+  on("settg",()=>form("Monthly EBITDAR Target",[{k:"target",label:"Target ($ Per Month)",type:"number"}],{target:S.finance.target},o=>{S.finance.target=o.target;save("finance");render()}));
+  v.querySelectorAll("[data-day]").forEach(e=>e.onclick=()=>{const d=S.daily.days.find(x=>x.date===e.dataset.day);form("Edit Day",dayFields(),d,o=>{Object.assign(d,o);save("daily");render()},{del:()=>{S.daily.days=S.daily.days.filter(x=>x!==d);save("daily");render()}})});
+  on("addday",()=>{const last=[...S.daily.days].sort((a,b)=>b.date.localeCompare(a.date))[0];form("Add Day",dayFields(),{date:todayISO(),census:last?last.census:""},o=>{if(!o.date)return;S.daily.days=S.daily.days.filter(x=>x.date!==o.date);S.daily.days.push(o);save("daily");render()})});
+  on("settgd",()=>form("Daily Targets",[{k:"nursing",label:"Nursing Cost Per Patient Day ($)",type:"number"},{k:"agency",label:"Agency Cost Per Patient Day ($)",type:"number"},{k:"census",label:"Census Target",type:"number"}],S.daily.targets,o=>{Object.assign(S.daily.targets,o);save("daily");render()}));
+  on("addcon",()=>form("Add Contact",conFields(),{},o=>{S.contacts.push({id:uid(),...o});save("contacts");render()}));
+  on("addfac",()=>form("Add A Number",[{k:"k",label:"Label",def:""},{k:"v",label:"Value"}],{},o=>{S.facility.items.push(o);save("facility");render()}));
+  on("toask",e=>{const q=searchQ;searchQ="";$("#q").value="";location.hash="ask";setTimeout(()=>ask(q),50)})}
+window.addEventListener("hashchange",()=>{searchQ="";$("#q").value="";render();window.scrollTo(0,0)});
+$("#sform").onsubmit=e=>{e.preventDefault();searchQ=$("#q").value.trim();render()};
+$("#q").addEventListener("input",e=>{if(!e.target.value.trim()&&searchQ){searchQ="";render()}});
+$("#fab").onclick=()=>{const r=route();
+  if(r==="safety")return form("Add Inspection",inspFields(),{freq:"Annual"},o=>{S.inspections.push({id:uid(),...o,log:[],history:[]});save("inspections");render()});
+  if(r==="docs")return addDoc();
+  if(r==="daily")return $("#addday").click();
+  if(r==="timeoff")return $("#addtor")&&$("#addtor").click();
+  if(r==="contacts")return $("#addcon").click();
+  form("Add To-Do",todoFields(),{cat:"General"},o=>{const f=o._file;delete o._file;S.todos.push({id:uid(),...o,files:f?[f]:[],created:todayISO()});save("todos");render();toast("Added")})};
+
+render();
+(async()=>{
+  try{db=await claude.use("db")}catch(e){db=null}
+  const timer=setTimeout(()=>{if(!loaded){const b=$("#banner");b.textContent="Your saved data can't be reached yet. It will appear when the connection comes back.";b.style.display="block"}},10000);
+  try{assets=await claude.use("assets")}catch(e){assets=null}
+  try{sample=await claude.use("sample")}catch(e){sample=null}
+  if(!db){clearTimeout(timer);loaded=true;const b=$("#banner");b.textContent="Saving isn't available in this view — changes won't be kept.";b.style.display="block";render();return}
+  db.collection("hub").onSnapshot(snap=>{
+    snap.docs.forEach(d=>{const v=d.data()||{};const js=JSON.stringify(v);if(lastJSON[d.id]===js)return;lastJSON[d.id]=js;if(d.id==="finance")S.finance={months:v.months||[],target:v.target??300000};else if(d.id==="facility")S.facility={items:v.items||[]};else if(d.id==="daily")S.daily={days:v.days||[],targets:{nursing:129,agency:15,census:147,...(v.targets||{})}};else if(SECTIONS.includes(d.id))S[d.id]=JSON.parse(JSON.stringify(v.items||[]))});
+    if(!snap.metadata.fromCache){loaded=true;clearTimeout(timer);$("#banner").style.display="none"}
+    if(!$("#sheetbg").classList.contains("open"))render()},
+  err=>{clearTimeout(timer);loaded=true;const b=$("#banner");b.textContent="Your saved data couldn't be loaded.";b.style.display="block";render()});
+})();
+}
+</script>
+</body>
+</html>
