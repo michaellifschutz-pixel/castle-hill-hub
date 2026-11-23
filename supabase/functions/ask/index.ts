@@ -25,8 +25,8 @@ Deno.serve(async (req) => {
   });
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return reply(401, { error: "Not signed in" });
-  const { data: member } = await sb.from("members").select("user_id").eq("user_id", user.id).maybeSingle();
-  if (!member) return reply(403, { error: "Not a Hub member" });
+  const { data: member } = await sb.from("members").select("role").eq("user_id", user.id).maybeSingle();
+  if (!member || member.role !== "admin") return reply(403, { error: "Ask is for Full Access members" });
 
   let body: { mode?: string; prompt?: string; images?: { media_type: string; data: string }[] };
   try { body = await req.json(); } catch { return reply(400, { error: "Bad JSON" }); }

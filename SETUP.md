@@ -49,9 +49,13 @@ Without step 5 everything else works; Ask just says it couldn't get an answer.
 
 ---
 
-## Adding staff later
-Authentication → Users → Add user, then run the `insert into public.members ...` line with their email.
-Right now every member sees **everything**, including HR – Owner Only and Finance. Ask Claude to add per-person access before giving staff logins.
+## Team and access levels (one-time setup)
+1. Supabase → SQL Editor → paste all of `supabase/migrations/002_team_and_time_off.sql` → Run.
+2. Supabase → Edge Functions → Deploy a new function → Via Editor. Name it exactly `team`. Paste all of `supabase/functions/team/index.ts` → Deploy.
+3. In the Hub, click **Team** (top right) to add people:
+   - **Full Access**: everything, same as you.
+   - **Department Head**: Time Off only. They request days off; you approve on your Time Off tab.
+   The Team page shows a temporary password to send them. They choose their own at first sign-in.
 
 ## Changing the site later
 Edit files in `site/`, then on Netlify: **Deploys** → drag the `site` folder again.
