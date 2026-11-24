@@ -60,6 +60,9 @@ h3{font-size:17px;margin:22px 0 8px}
 .chip{border:1px solid var(--line);background:var(--paper);border-radius:99px;padding:7px 13px;font-size:14px;font-weight:600;cursor:pointer;min-height:36px}
 .chip.on{background:var(--brand);color:light-dark(#fff,#11151b);border-color:var(--brand)}
 .empty{padding:22px 16px;color:var(--soft);text-align:center}
+.rowdel{flex:none;border:1px solid var(--line);background:none;color:var(--red);border-radius:8px;padding:6px 10px;min-height:36px;font-size:13px;font-weight:600;cursor:pointer}
+@media(max-width:600px){.row:has(.rowdel){flex-wrap:wrap;row-gap:8px}.row:has(.rowdel) .main{flex-basis:100%}.row:has(.rowdel) .rowdel{margin-left:auto}}
+.rowdel:hover{background:var(--redbg)}.rowdel:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
 .check{flex:none;width:26px;height:26px;border-radius:50%;border:2px solid var(--soft);background:none;cursor:pointer}
 .check.done{background:var(--green);border-color:var(--green)}
 .fab{position:fixed;right:max(4vw,16px);bottom:22px;width:60px;height:60px;border-radius:50%;border:0;background:var(--brand);color:light-dark(#fff,#11151b);font-size:32px;box-shadow:0 6px 20px rgba(0,0,0,.25);cursor:pointer;z-index:6}
@@ -329,7 +332,7 @@ function vDocs(){let list=S.docs.filter(x=>docFolder==="All"||x.folder===docFold
   return `<h2>Documents</h2><p class="sub">Licenses, insurance, contracts and letters — with expiration reminders. Snap a photo to add one.</p>
   <div class="bar"><button class="btn pri" id="adddoc">+ Add Document</button>${["All",...DOC_FOLDERS].map(f=>`<button class="chip ${f===docFolder?"on":""}" data-df="${esc(f)}">${esc(f)}</button>`).join("")}</div>
   ${missing?`<p class="note">${missing} records don't have their file attached yet. Open one and tap Attach File, or send the files and they'll be added.</p>`:""}
-  <div class="card">${list.length?list.map(x=>{const st=expState(x.expires);return `<div class="row" tabindex="0" data-doc="${x.id}"><div class="main"><div class="t">${esc(x.title)}</div><div class="m">${esc(x.folder)}${x.file?" · 📎":" · File Needed"}</div></div><span class="pill ${st[1]}">${esc(st[0])}</span></div>`}).join(""):`<div class="empty">No documents here yet.</div>`}</div>`}
+  <div class="card">${list.length?list.map(x=>{const st=expState(x.expires);return `<div class="row" tabindex="0" data-doc="${x.id}"><div class="main"><div class="t">${esc(x.title)}</div><div class="m">${esc(x.folder)}${x.file?" · 📎":" · File Needed"}</div></div><span class="pill ${st[1]}">${esc(st[0])}</span><button class="rowdel" type="button" data-ddel="${x.id}" aria-label="Delete ${esc(x.title)}" title="Delete">Delete</button></div>`}).join(""):`<div class="empty">No documents here yet.</div>`}</div>`}
 function docFields(){return[{k:"file",label:"Photo Or PDF",type:"file"},{k:"title",label:"Title"},{k:"folder",label:"Folder",type:"select",opts:DOC_FOLDERS},{k:"expires",label:"Expiration Date",type:"date"},{k:"notes",label:"Notes",type:"textarea"}]}
 function addDoc(){form("Add Document",docFields(),{folder:"Licenses & Certificates"},o=>{const f=o._file;delete o._file;S.docs.push({id:uid(),...o,file:f||null,added:todayISO()});save("docs");render();toast("Document added")},
   {intro:sample?"Snap a photo of the page and the title, folder and expiration fill in for you. Check them before saving.":"",onFile:readDoc})}
@@ -339,12 +342,17 @@ async function readDoc(file){if(!sample||!file||!file.type.startsWith("image/"))
   try{const r=await sample.json(`Read this facility document photo for ${FAC.name}. Return JSON {"title": short Title Case name like "DOH License" or "Elevator Certificate – Car 2", "folder": one of ${JSON.stringify(DOC_FOLDERS)}, "expires": "YYYY-MM-DD" or "" if none printed, "notes": one short line with key numbers}.`,{images:[file],modelTier:"quick"});
     if(r){if(r.title&&!$("#f_title").value)$("#f_title").value=r.title;if(r.folder&&DOC_FOLDERS.includes(r.folder))$("#f_folder").value=r.folder;if(r.expires)$("#f_expires").value=r.expires;if(r.notes&&!$("#f_notes").value)$("#f_notes").value=r.notes}
     if(n)n.textContent="Filled in from the photo. Check before saving."}catch(e){if(n)n.textContent="Couldn't read it — fill in the fields."}}
+function delDoc(id){const x=S.docs.find(d=>d.id===id);if(!x)return;
+  if(!confirm(`Delete "${x.title}"?\n\nYou can undo this for a few seconds afterwards.`))return;
+  const k=S.docs.indexOf(x);S.docs.splice(k,1);save("docs");closeSheet();render();
+  toast("Document deleted",()=>{S.docs.splice(k,0,x);save("docs");render()})}
 function doc(id){const x=S.docs.find(d=>d.id===id);if(!x)return;const st=expState(x.expires);
   openSheet(`<h2>${esc(x.title)}</h2><p><span class="pill ${st[1]}">${esc(st[0])}</span></p><dl class="kv"><dt>Folder</dt><dd>${esc(x.folder)}</dd><dt>Added</dt><dd>${fmt(x.added)}</dd></dl>
   ${x.notes?`<p style="white-space:pre-wrap">${esc(x.notes)}</p>`:""}
   ${x.file?`<p><a class="btn pri" href="${blobUrl(x.file)}" target="_blank" rel="noopener">Open File</a></p>${x.file.type&&x.file.type.startsWith("image/")?`<img src="${blobUrl(x.file)}" alt="" style="max-width:100%;border-radius:10px;border:1px solid var(--line)">`:""}`:`<p class="note">No file attached yet.</p>`}
   ${(x.more||[]).map(f=>`<p><a href="${blobUrl(f)}" target="_blank" rel="noopener">📎 ${esc(f.name)}</a></p>`).join("")}
-  <div class="acts"><button class="btn" id="d_file">${x.file?"Replace File":"Attach File"}</button><button class="btn" id="d_edit">Edit</button><button class="btn" id="d_todo">Make A To-Do</button></div>`);
+  <div class="acts"><button class="btn" id="d_file">${x.file?"Replace File":"Attach File"}</button><button class="btn" id="d_edit">Edit</button><button class="btn" id="d_todo">Make A To-Do</button><button class="btn warn" id="d_del">Delete</button></div>`);
+  $("#d_del").onclick=()=>delDoc(id);
   $("#d_file").onclick=()=>form("Attach File",[{k:"file",label:"Photo Or PDF",type:"file"}],{},o=>{if(o._file){x.file=o._file;save("docs");render();doc(id)}});
   $("#d_edit").onclick=()=>form("Edit Document",docFields().slice(1),x,o=>{Object.assign(x,o);save("docs");render()},{del:()=>{const k=S.docs.indexOf(x);S.docs.splice(k,1);save("docs");render();toast("Document deleted",()=>{S.docs.splice(k,0,x);save("docs");render()})}});
   $("#d_todo").onclick=()=>{S.todos.push({id:uid(),title:"Renew: "+x.title,cat:"Compliance & Survey",due:x.expires||"",notes:"",created:todayISO()});save("todos");closeSheet();toast("Added to To-Do")}}
@@ -505,7 +513,8 @@ function wire(){const v=$("#view");{const a=v.querySelector("#ans");if(a&&lastAn
   v.querySelectorAll("[data-tf]").forEach(e=>e.onclick=()=>{todoFilter=e.dataset.tf;render()});
   v.querySelectorAll("[data-insp]").forEach(e=>e.onclick=ev=>{ev.preventDefault();insp(e.dataset.insp)});
   v.querySelectorAll("[data-ls]").forEach(e=>e.onclick=()=>{lsView=e.dataset.ls;render()});
-  v.querySelectorAll("[data-doc]").forEach(e=>e.onclick=()=>doc(e.dataset.doc));
+  v.querySelectorAll("[data-doc]").forEach(e=>e.onclick=ev=>{if(ev.target.closest("[data-ddel]"))return;doc(e.dataset.doc)});
+  v.querySelectorAll("[data-ddel]").forEach(e=>e.onclick=ev=>{ev.stopPropagation();delDoc(e.dataset.ddel)});
   v.querySelectorAll("[data-df]").forEach(e=>e.onclick=()=>{docFolder=e.dataset.df;render()});
   v.querySelectorAll("[data-meet]").forEach(e=>e.onclick=()=>meet(e.dataset.meet));
   v.querySelectorAll("[data-tor]").forEach(e=>e.onclick=ev=>{ev.stopPropagation();tor(e.dataset.tor)});
