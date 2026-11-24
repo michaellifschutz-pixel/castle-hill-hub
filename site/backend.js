@@ -276,9 +276,17 @@
   const DEPTS_T = ["Nursing", "Admissions", "Business Office", "Dietary", "Housekeeping", "Laundry", "Maintenance", "MDS", "Medical Records", "Recreation", "Rehab", "Social Services", "Staff Education", "HR", "Infection Control", "Administration", "Other"];
   async function teamCall(body) {
     const { data: { session } } = await sb.auth.getSession();
-    const r = await fetch(C.SUPABASE_URL + "/functions/v1/team", {
-      method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + session.access_token, apikey: C.SUPABASE_ANON_KEY }, body: JSON.stringify(body)
-    });
+    // The function may be named "team" or "team-" (Supabase sometimes adds a dash). Try each.
+    let r = null, lastErr = null;
+    for (const name of ["team-", "team"]) {
+      try {
+        r = await fetch(C.SUPABASE_URL + "/functions/v1/" + name, {
+          method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + session.access_token, apikey: C.SUPABASE_ANON_KEY }, body: JSON.stringify(body)
+        });
+        if (r.status !== 404) break;
+      } catch (e) { lastErr = e; r = null; }
+    }
+    if (!r) throw new Error("Couldn't reach the Team function in Supabase. Check that Enforce JWT Verification is turned off on it.");
     const j = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(j.error || (r.status === 404 ? "The Team function isn't set up in Supabase yet." : "Something went wrong."));
     return j;
