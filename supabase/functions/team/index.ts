@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
         const existing = (await allUsers()).find((u) => (u.email ?? "").toLowerCase() === email);
         if (!existing) return reply(400, { error: error.message });
         id = existing.id;
-        await admin.auth.admin.updateUserById(id, { password, user_metadata: { name, must_change_password: true } });
+        await admin.auth.admin.updateUserById(id, { password, email_confirm: true, user_metadata: { name, must_change_password: true } });
       } else id = data.user.id;
       const { error: e2 } = await admin.from("members").upsert({ user_id: id, email, name, role, dept });
       if (e2) return reply(500, { error: e2.message });
@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
     if (b.action === "reset") {
       const password = tempPassword();
       const { data: u } = await admin.auth.admin.getUserById(target);
-      const { error } = await admin.auth.admin.updateUserById(target, { password, user_metadata: { ...(u?.user?.user_metadata ?? {}), must_change_password: true } });
+      const { error } = await admin.auth.admin.updateUserById(target, { password, email_confirm: true, user_metadata: { ...(u?.user?.user_metadata ?? {}), must_change_password: true } });
       if (error) return reply(500, { error: error.message });
       return reply(200, { email: u?.user?.email, password });
     }
