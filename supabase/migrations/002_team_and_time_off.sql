@@ -76,3 +76,8 @@ revoke all on function public.cancel_time_off(text) from public, anon;
 grant execute on function public.get_time_off() to authenticated;
 grant execute on function public.submit_time_off(date, date, text, text) to authenticated;
 grant execute on function public.cancel_time_off(text) to authenticated;
+
+-- The Team function uses the service role; newer projects don't grant it table access automatically.
+grant usage on schema public to service_role;
+grant all on public.members to service_role;
+grant all on public.hub to service_role;
