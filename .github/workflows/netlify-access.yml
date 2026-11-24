@@ -1,0 +1,55 @@
+# Shows or removes Netlify's own visitor protection on the Hub site.
+# The Hub has its own sign-in, so Netlify's extra login wall is not needed.
+name: Netlify visitor access
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "show or remove"
+        required: true
+        default: show
+
+jobs:
+  access:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Find the site
+        id: site
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        run: |
+          set -euo pipefail
+          site="${NETLIFY_SITE_ID:-}"
+          if [ -z "$site" ]; then
+            curl -sS -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" "https://api.netlify.com/api/v1/sites?filter=all&per_page=100" > sites.json
+            site=$(jq -r 'if length==1 then .[0].id else ([.[] | select(.name|test("incandescent-marzipan|castle";"i"))] | if length==1 then .[0].id else "" end) end' sites.json)
+          fi
+          [ -n "$site" ] || { echo "::error::Could not pick the site"; exit 1; }
+          echo "id=$site" >> "$GITHUB_OUTPUT"
+
+      - name: Show protection settings
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+        run: |
+          curl -sS -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" "https://api.netlify.com/api/v1/sites/${{ steps.site.outputs.id }}" > site.json
+          echo "Site: $(jq -r .name site.json)  $(jq -r .ssl_url site.json)"
+          jq '{has_password: ((.password // "") != ""), sso_login, sso_login_context, password_context: (.password_context // null), processing_settings_password: (.processing_settings.password // null)}' site.json
+          echo "All keys mentioning password/sso/protect/access:"
+          jq -r 'paths(scalars) | map(tostring) | join(".")' site.json | grep -Ei 'password|sso|protect|visitor|access_control' || true
+          jq -c '[paths(scalars) as $p | select(($p|map(tostring)|join(".")) | test("sso|protect|visitor|access_control";"i")) | {($p|map(tostring)|join(".")): getpath($p)}]' site.json
+
+      - name: Remove protection
+        if: ${{ github.event.inputs.action == 'remove' }}
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+        run: |
+          set -euo pipefail
+          code=$(curl -sS -o out.json -w '%{http_code}' -X PATCH \
+            -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" -H "Content-Type: application/json" \
+            "https://api.netlify.com/api/v1/sites/${{ steps.site.outputs.id }}" \
+            -d '{"password": null, "sso_login": false}')
+          echo "HTTP $code"
+          jq '{has_password: ((.password // "") != ""), sso_login, sso_login_context}' out.json
+          [ "$code" -lt 300 ] || exit 1
