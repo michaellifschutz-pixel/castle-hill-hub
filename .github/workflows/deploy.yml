@@ -1,0 +1,102 @@
+# Publishes the Castle Hill Hub on every push to main:
+#   1. runs any database change files (supabase/migrations/*.sql) added or edited in the push
+#   2. deploys the Supabase Edge Functions (ask, team)
+#   3. publishes site/ to Netlify
+# One-time setup: add repository secrets SUPABASE_ACCESS_TOKEN and NETLIFY_AUTH_TOKEN
+# (optional NETLIFY_SITE_ID if the Netlify account has more than one project).
+name: Publish Hub
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      sql_file:
+        description: "Optional: re-run one database file, e.g. supabase/migrations/002_team_and_time_off.sql"
+        required: false
+        default: ""
+
+concurrency:
+  group: publish-hub
+  cancel-in-progress: false
+
+env:
+  PROJECT_REF: wrqafbjeafxdnzvhqafo
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check keys are set up
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+        run: |
+          missing=""
+          [ -n "$SUPABASE_ACCESS_TOKEN" ] || missing="$missing SUPABASE_ACCESS_TOKEN"
+          [ -n "$NETLIFY_AUTH_TOKEN" ] || missing="$missing NETLIFY_AUTH_TOKEN"
+          if [ -n "$missing" ]; then echo "::error::Missing GitHub secret(s):$missing"; exit 1; fi
+
+      - name: Database changes
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SQL_FILE: ${{ github.event.inputs.sql_file }}
+        run: |
+          set -euo pipefail
+          if [ -n "${SQL_FILE:-}" ]; then files="$SQL_FILE"
+          elif git rev-parse -q --verify HEAD~1 >/dev/null; then
+            files=$(git diff --name-only --diff-filter=AM HEAD~1 HEAD -- 'supabase/migrations/*.sql' | sort)
+          else files=""; fi
+          if [ -z "$files" ]; then echo "No database changes in this push."; exit 0; fi
+          for f in $files; do
+            echo "Running $f"
+            body=$(jq -Rs '{query: .}' < "$f")
+            code=$(curl -sS -o out.json -w '%{http_code}' -X POST \
+              "https://api.supabase.com/v1/projects/$PROJECT_REF/database/query" \
+              -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H "Content-Type: application/json" -d "$body")
+            if [ "$code" -ge 300 ]; then echo "::error::$f failed (HTTP $code)"; cat out.json; exit 1; fi
+            echo "OK"
+          done
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Deploy Supabase functions
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          for d in supabase/functions/*/; do
+            name=$(basename "$d")
+            echo "Deploying $name"
+            supabase functions deploy "$name" --project-ref "$PROJECT_REF" --no-verify-jwt
+          done
+
+      - name: Publish website to Netlify
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        run: |
+          set -euo pipefail
+          site="${NETLIFY_SITE_ID:-}"
+          if [ -z "$site" ]; then
+            curl -sS -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" "https://api.netlify.com/api/v1/sites?filter=all&per_page=100" > sites.json
+            n=$(jq 'length' sites.json)
+            if [ "$n" = "1" ]; then site=$(jq -r '.[0].id' sites.json)
+            else
+              site=$(jq -r '[.[] | select(.ssl_url != null) | select((.name|test("incandescent-marzipan|castle"; "i")))] | if length==1 then .[0].id else "" end' sites.json)
+            fi
+            if [ -z "$site" ]; then
+              echo "::error::Several Netlify projects found. Add a NETLIFY_SITE_ID secret. Projects:"; jq -r '.[] | "\(.name)  \(.id)"' sites.json; exit 1
+            fi
+          fi
+          (cd site && zip -qr ../site.zip . -x '.*')
+          code=$(curl -sS -o deploy.json -w '%{http_code}' -X POST \
+            "https://api.netlify.com/api/v1/sites/$site/deploys" \
+            -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" -H "Content-Type: application/zip" --data-binary @site.zip)
+          if [ "$code" -ge 300 ]; then echo "::error::Netlify publish failed (HTTP $code)"; cat deploy.json; exit 1; fi
+          echo "Published: $(jq -r '.ssl_url // .url' deploy.json)"

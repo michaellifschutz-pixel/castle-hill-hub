@@ -158,7 +158,7 @@
     const { data: { session } } = await sb.auth.getSession();
     // Supabase may save the function as "ask" or "ask-". Try each.
     let r = null;
-    for (const name of ["ask-", "ask"]) {
+    for (const name of ["ask", "ask-"]) {
       try {
         r = await fetch(C.SUPABASE_URL + "/functions/v1/" + name, {
           method: "POST", signal,
@@ -286,7 +286,7 @@
     const { data: { session } } = await sb.auth.getSession();
     // The function may be named "team" or "team-" (Supabase sometimes adds a dash). Try each.
     let r = null, lastErr = null;
-    for (const name of ["team-", "team"]) {
+    for (const name of ["team", "team-"]) {
       try {
         r = await fetch(C.SUPABASE_URL + "/functions/v1/" + name, {
           method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + session.access_token, apikey: C.SUPABASE_ANON_KEY }, body: JSON.stringify(body)
