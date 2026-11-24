@@ -303,7 +303,9 @@
     if (!r.ok) throw new Error(j.error || (r.status === 404 ? "The Team function isn't set up in Supabase yet." : "Something went wrong."));
     return j;
   }
-  const site = () => location.origin + location.pathname.replace(/index\.html$/, "");
+  // Always hand out the main address, never a one-off deploy link (those look like abc123--name.netlify.app
+  // and Netlify asks visitors to sign in to Netlify for them).
+  const site = () => location.protocol + "//" + location.host.replace(/^[^.]*--/, "") + "/";
   function showTeam() {
     const bg = overlay();
     bg.style.alignItems = "flex-start"; bg.style.overflow = "auto";
