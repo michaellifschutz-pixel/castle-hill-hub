@@ -121,6 +121,7 @@ table.fin{width:100%;border-collapse:collapse;background:var(--paper)}
 <script src="supabase.js"></script>
 <script src="config.js"></script>
 <script src="backend.js"></script>
+<script src="charts.js"></script>
 <script>
 {
 const FAC = {name:"Optima Care Castle Hill", addr:"615 23rd St, Union City, NJ 07087", admin:"Michael Lifschutz, Administrator", email:"mlifschutz@optimacarecastlehill.com"};
@@ -480,15 +481,13 @@ function snapshot(){return JSON.stringify({today:todayISO(),facility:FAC,
   finance:S.finance,dailyTracker:{targets:S.daily.targets,days:[...S.daily.days].sort((a,b)=>a.date.localeCompare(b.date)).slice(-60)},facilityNumbers:S.facility.items})}
 function vAsk(){return `<h2>Ask</h2><p class="sub">Ask in plain words about anything in the Hub. Answers come only from what's stored here.</p>
   ${sample?`<form id="askf" class="quick"><input id="askq" placeholder="e.g. What's overdue before the fire inspection?" aria-label="Question"><button class="btn pri">Ask</button></form>
-  <div class="bar">${["What's overdue right now?","When does the boiler certificate expire?","Which QAPI reports are still missing?","What contracts renew in the next year?","Who is off next week?"].map(s=>`<button class="chip" data-ask="${esc(s)}">${esc(s)}</button>`).join("")}</div>
-  <div id="ans">${lastAnswer?`<div class="answer">${esc(lastAnswer)}</div>`:""}</div>`:`<div class="card"><div class="empty">Asking isn't available in this view. Search at the top still works.</div></div>`}`}
+  <div class="bar">${["Top 5 months by total revenue","EBITDAR vs the $300K target by month","Census trend this year","What's overdue right now?","Which QAPI reports are still missing?","Who is off next week?"].map(s=>`<button class="chip" data-ask="${esc(s)}">${esc(s)}</button>`).join("")}</div>
+  <div id="ans"></div>`:`<div class="card"><div class="empty">Asking isn't available in this view. Search at the top still works.</div></div>`}`}
 let askCtl=null;
-async function ask(q){if(!sample||!q)return;$("#askq").value=q;const box=$("#ans");box.innerHTML=`<div class="answer">Thinking…</div>`;
+async function ask(q){if(!sample||!q)return;$("#askq").value=q;const box=$("#ans");box.innerHTML=`<div class="answer">Thinking… charts take 10–30 seconds.</div>`;
   if(askCtl)askCtl.abort();askCtl=new AbortController();
-  try{const r=await sample(`You are the assistant inside the Castle Hill Hub for Michael Lifschutz, Administrator of ${FAC.name}. Answer his question using ONLY the JSON data below. If the answer isn't in the data, say so plainly and suggest what to add. Be brief and concrete: lead with the answer, then short lines. Use Title Case names as they appear. Dates like "Nov 18, 2026". No markdown symbols like ** or #.\n\nDATA:\n${snapshot()}\n\nQUESTION: ${q}`,
-    {signal:askCtl.signal,modelTier:"default",onText:({text})=>{lastAnswer=text;box.innerHTML=`<div class="answer">${esc(text)}</div>`}});
-    lastAnswer=r.text;box.innerHTML=`<div class="answer">${esc(r.text)}</div>`}
-  catch(e){if(e&&e.name==="AbortError")return;box.innerHTML=`<div class="answer">${e&&e.code==="rate_limited"?"Too many questions at once — wait a minute and try again.":e&&e.code==="not_granted"?"Asking needs your OK — tap Ask again and allow it.":"Couldn't get an answer right now."}</div>`}}
+  try{const r=await window.hubAsk(q,snapshot(),askCtl.signal);lastAnswer=r;if($("#ans"))window.hubRenderAnswer($("#ans"),r)}
+  catch(e){if(e&&e.name==="AbortError")return;box.innerHTML=`<div class="answer">${e&&e.code==="rate_limited"?"Too many questions at once — wait a minute and try again.":"Couldn't get an answer right now. If this keeps happening, the Ask setup in Supabase may not be finished."}</div>`}}
 
 /* ---------- render + routing ---------- */
 let searchQ="";
@@ -498,7 +497,7 @@ function render(){const r=searchQ?"":route();
   const V={today:vToday,todo:vTodo,safety:vSafety,docs:vDocs,qapi:vQapi,timeoff:vTimeoff,finance:vFinance,daily:vDaily,contacts:vContacts,ask:vAsk};
   $("#view").innerHTML=searchQ?vSearch(searchQ):(!loaded&&db?`<div class="empty">Loading your Hub…</div>`:V[r]());
   wire()}
-function wire(){const v=$("#view");
+function wire(){const v=$("#view");{const a=v.querySelector("#ans");if(a&&lastAnswer&&typeof lastAnswer==="object")window.hubRenderAnswer(a,lastAnswer)}
   v.querySelectorAll("[data-go]").forEach(e=>e.onclick=()=>{location.hash=e.dataset.go});
   v.querySelectorAll("[data-need]").forEach(e=>e.onclick=()=>NEEDS[+e.dataset.need].go());
   v.querySelectorAll("[data-todo]").forEach(e=>e.onclick=ev=>{if(ev.target.closest("[data-tick]"))return;todo(e.dataset.todo)});

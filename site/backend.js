@@ -186,6 +186,10 @@
     return j.json;
   };
   sample.limits = async () => ({ images: true });
+  window.hubAsk = async (question, data, signal) => {
+    const j = await callAsk({ mode: "chart", question, data }, signal);
+    return { answer: j.answer || j.text || "", charts: Array.isArray(j.charts) ? j.charts : [] };
+  };
 
   /* ---------- one-time import ---------- */
   const TYPES = { pdf: "application/pdf", jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", heic: "image/heic", webp: "image/webp" };
