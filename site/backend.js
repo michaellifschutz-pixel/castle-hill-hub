@@ -156,11 +156,19 @@
   /* ---------- Ask (Claude via Edge Function) ---------- */
   async function callAsk(body, signal) {
     const { data: { session } } = await sb.auth.getSession();
-    const r = await fetch(C.SUPABASE_URL + "/functions/v1/ask", {
-      method: "POST", signal,
-      headers: { "Content-Type": "application/json", Authorization: "Bearer " + session.access_token, apikey: C.SUPABASE_ANON_KEY },
-      body: JSON.stringify(body)
-    });
+    // Supabase may save the function as "ask" or "ask-". Try each.
+    let r = null;
+    for (const name of ["ask-", "ask"]) {
+      try {
+        r = await fetch(C.SUPABASE_URL + "/functions/v1/" + name, {
+          method: "POST", signal,
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + session.access_token, apikey: C.SUPABASE_ANON_KEY },
+          body: JSON.stringify(body)
+        });
+        if (r.status !== 404) break;
+      } catch (e) { if (e && e.name === "AbortError") throw e; r = null; }
+    }
+    if (!r) throw err("unavailable", "Ask isn't set up in Supabase yet.");
     const j = await r.json().catch(() => ({}));
     if (!r.ok) throw err(r.status === 429 ? "rate_limited" : "unavailable", j.error);
     return j;
