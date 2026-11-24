@@ -1,0 +1,19 @@
+# Read-only: lists Hub logins and their access, to troubleshoot sign-in problems.
+name: Check logins
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Logins and access
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          q="select u.email, u.email_confirmed_at is not null as confirmed, u.last_sign_in_at, u.created_at, coalesce(u.raw_user_meta_data->>'must_change_password','') as must_change_pw, u.banned_until, m.role, m.name from auth.users u left join public.members m on m.user_id = u.id order by u.created_at"
+          curl -sS -X POST "https://api.supabase.com/v1/projects/wrqafbjeafxdnzvhqafo/database/query" \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H "Content-Type: application/json" \
+            -d "$(jq -n --arg q "$q" '{query:$q}')" | jq .
