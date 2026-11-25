@@ -100,5 +100,12 @@ jobs:
           code=$(curl -sS -o su.json -w '%{http_code}' -X POST "$URL/auth/v1/signup" -H "apikey: $ANON" -H "Content-Type: application/json" -d '{"email":"signup-probe@example.invalid","password":"Xx1!Xx1!Xx1!Xx1!"}')
           if [ "$code" -ge 400 ]; then ok "Public sign-up is blocked (HTTP $code)"; else bad "Public sign-up allowed (HTTP $code)"; sid=$(jq -r '.id // .user.id // empty' su.json); [ -n "$sid" ] && curl -sS -X DELETE "$URL/auth/v1/admin/users/$sid" -H "apikey: $SRV" -H "Authorization: Bearer $SRV" >/dev/null; fi
 
+          # --- setup links still work with sign-ups locked ---
+          IE="invite-probe-$(date +%s)@example.invalid"
+          r=$(curl -sS -X POST "$URL/auth/v1/admin/generate_link" -H "apikey: $SRV" -H "Authorization: Bearer $SRV" -H "Content-Type: application/json" -d "$(jq -n --arg e "$IE" '{type:"invite",email:$e}')")
+          iid=$(echo "$r" | jq -r '.id // .user.id // empty')
+          if echo "$r" | jq -e '(.action_link // .properties.action_link) != null' >/dev/null; then ok "Team page setup links still work with sign-ups locked"; else bad "Setup link failed: $(echo "$r" | jq -c '{code,msg,error_code}')"; fi
+          [ -n "$iid" ] && curl -sS -X DELETE "$URL/auth/v1/admin/users/$iid" -H "apikey: $SRV" -H "Authorization: Bearer $SRV" >/dev/null
+
           echo "RESULT: $pass passed, $fail failed"
           [ "$fail" = "0" ]
