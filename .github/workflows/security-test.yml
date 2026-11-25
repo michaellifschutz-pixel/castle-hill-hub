@@ -1,0 +1,104 @@
+# Real-world access test: signs in as a temporary Department Head and tries to reach
+# everything they should NOT see, through the same doors a browser would use.
+# The test login and anything it creates are deleted at the end, pass or fail.
+name: Security test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run access tests
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -uo pipefail
+          REF=wrqafbjeafxdnzvhqafo; URL="https://$REF.supabase.co"
+          keys=$(curl -sS -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" "https://api.supabase.com/v1/projects/$REF/api-keys?reveal=true")
+          ANON=$(echo "$keys" | jq -r '.[] | select(.name=="anon") | .api_key')
+          SRV=$(echo "$keys" | jq -r '.[] | select(.name=="service_role") | .api_key')
+          echo "::add-mask::$SRV"
+          [ -n "$ANON" ] && [ -n "$SRV" ] || { echo "::error::Could not read project keys"; exit 1; }
+          EMAIL="security-test-$(date +%s)@example.invalid"; PW="T$(openssl rand -hex 16)!"
+          echo "::add-mask::$PW"
+          pass=0; fail=0
+          ok()  { echo "PASS  $1"; pass=$((pass+1)); }
+          bad() { echo "FAIL  $1"; fail=$((fail+1)); }
+
+          # --- create a temporary Department Head ---
+          UID_=$(curl -sS -X POST "$URL/auth/v1/admin/users" -H "apikey: $SRV" -H "Authorization: Bearer $SRV" -H "Content-Type: application/json" \
+                 -d "$(jq -n --arg e "$EMAIL" --arg p "$PW" '{email:$e,password:$p,email_confirm:true}')" | jq -r .id)
+          [ -n "$UID_" ] && [ "$UID_" != "null" ] || { echo "::error::Could not create test login"; exit 1; }
+          sql() { curl -sS -X POST "https://api.supabase.com/v1/projects/$REF/database/query" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H "Content-Type: application/json" -d "$(jq -n --arg q "$1" '{query:$q}')"; }
+          cleanup() {
+            sql "update public.hub set data = jsonb_set(data, '{items}', (select coalesce(jsonb_agg(it), '[]'::jsonb) from jsonb_array_elements(data->'items') it where it->>'by' is distinct from '$UID_' and it->>'id' is distinct from 'sectest-other')) where id = 'timeoff';" >/dev/null
+            curl -sS -X DELETE "$URL/auth/v1/admin/users/$UID_" -H "apikey: $SRV" -H "Authorization: Bearer $SRV" >/dev/null
+            echo "Cleaned up test login and test requests."
+          }
+          trap cleanup EXIT
+          curl -sS -X POST "$URL/rest/v1/members" -H "apikey: $SRV" -H "Authorization: Bearer $SRV" -H "Content-Type: application/json" -H "Prefer: return=minimal" \
+            -d "$(jq -n --arg u "$UID_" --arg e "$EMAIL" '{user_id:$u,email:$e,role:"depthead",name:"Security Test",dept:"Dietary"}')" >/dev/null
+          JWT=$(curl -sS -X POST "$URL/auth/v1/token?grant_type=password" -H "apikey: $ANON" -H "Content-Type: application/json" \
+                -d "$(jq -n --arg e "$EMAIL" --arg p "$PW" '{email:$e,password:$p}')" | jq -r .access_token)
+          echo "::add-mask::$JWT"
+          [ -n "$JWT" ] && [ "$JWT" != "null" ] && ok "Department Head can sign in" || { bad "Department Head sign-in"; exit 1; }
+          H=(-H "apikey: $ANON" -H "Authorization: Bearer $JWT")
+
+          # --- records ---
+          for sec in docs inspections todos contacts finance daily qapi facility timeoff; do
+            n=$(curl -sS "${H[@]}" "$URL/rest/v1/hub?id=eq.$sec&select=id" | jq 'if type=="array" then length else -1 end')
+            [ "$n" = "0" ] && ok "Cannot read hub section: $sec" || bad "Read hub section $sec (got $n)"
+          done
+          code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "${H[@]}" -H "Content-Type: application/json" "$URL/rest/v1/hub" -d '{"id":"timeoff","data":{"items":[]}}')
+          [ "$code" -ge 400 ] && ok "Cannot overwrite Time Off directly (HTTP $code)" || bad "Overwrote hub row (HTTP $code)"
+          n=$(curl -sS "${H[@]}" -X PATCH -H "Content-Type: application/json" -H "Prefer: return=representation" "$URL/rest/v1/hub?id=eq.docs" -d '{"data":{"items":[]}}' | jq 'if type=="array" then length else 0 end')
+          [ "$n" = "0" ] && ok "Cannot change Documents" || bad "Changed Documents"
+          n=$(curl -sS "${H[@]}" "$URL/rest/v1/members?select=email" | jq 'if type=="array" then length else -1 end')
+          [ "$n" = "1" ] && ok "Sees only own membership row" || bad "Members visible: $n"
+
+          # --- files ---
+          n=$(curl -sS -X POST "${H[@]}" -H "Content-Type: application/json" "$URL/storage/v1/object/list/hub-files" -d '{"prefix":"","limit":5}' | jq 'if type=="array" then length else 0 end')
+          [ "$n" = "0" ] && ok "Cannot list files" || bad "Listed $n files"
+          FILE=$(curl -sS -X POST -H "apikey: $SRV" -H "Authorization: Bearer $SRV" -H "Content-Type: application/json" "$URL/storage/v1/object/list/hub-files" -d '{"prefix":"","limit":1}' | jq -r '.[0].name')
+          code=$(curl -sS -o /dev/null -w '%{http_code}' "${H[@]}" "$URL/storage/v1/object/authenticated/hub-files/$FILE")
+          [ "$code" -ge 400 ] && ok "Cannot open a known file directly (HTTP $code)" || bad "Opened file directly (HTTP $code)"
+          code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "${H[@]}" -H "Content-Type: application/json" "$URL/storage/v1/object/sign/hub-files/$FILE" -d '{"expiresIn":60}')
+          [ "$code" -ge 400 ] && ok "Cannot create a download link for a file (HTTP $code)" || bad "Created signed link (HTTP $code)"
+          code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "${H[@]}" -H "Content-Type: application/pdf" "$URL/storage/v1/object/hub-files/test-$UID_" --data-binary 'x')
+          [ "$code" -ge 400 ] && ok "Cannot upload files (HTTP $code)" || { bad "Uploaded a file (HTTP $code)"; curl -sS -X DELETE -H "apikey: $SRV" -H "Authorization: Bearer $SRV" "$URL/storage/v1/object/hub-files/test-$UID_" >/dev/null; }
+
+          # --- admin-only functions ---
+          for fn in team ask; do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "${H[@]}" -H "Content-Type: application/json" "$URL/functions/v1/$fn" -d '{"action":"list","mode":"text","prompt":"hi"}')
+            [ "$code" = "403" ] && ok "Blocked from $fn function (HTTP 403)" || bad "$fn function returned HTTP $code"
+          done
+
+          # --- time off: what they CAN do ---
+          r=$(curl -sS -X POST "${H[@]}" -H "Content-Type: application/json" "$URL/rest/v1/rpc/submit_time_off" -d '{"p_start":"2027-01-04","p_end":"2027-01-05","p_type":"Sick","p_reason":"test note"}')
+          RID=$(echo "$r" | jq -r '.id // empty')
+          [ -n "$RID" ] && [ "$(echo "$r" | jq -r .status)" = "Pending" ] && ok "Can submit a request (lands as Pending)" || bad "Submit failed: $r"
+          list=$(curl -sS -X POST "${H[@]}" -H "Content-Type: application/json" "$URL/rest/v1/rpc/get_time_off" -d '{}')
+          echo "$list" | jq -e --arg id "$RID" 'any(.[]; .id==$id and .type=="Sick" and .reason=="test note")' >/dev/null && ok "Sees full details of own request" || bad "Own request details missing"
+          leak=$(echo "$list" | jq --arg id "$RID" '[.[] | select(.id!=$id) | select(has("reason") or has("type") or has("file") or has("by"))] | length')
+          others=$(echo "$list" | jq --arg id "$RID" '[.[] | select(.id!=$id)] | length')
+          [ "$leak" = "0" ] && ok "Others' requests show no type, notes or files ($others checked)" || bad "$leak other requests expose private fields"
+          # a fake "someone else" request, so the test never touches a real one
+          sql "update public.hub set data = jsonb_set(data, '{items}', coalesce(data->'items','[]'::jsonb) || jsonb_build_array(jsonb_build_object('id','sectest-other','name','Security Test Other','dept','Rehab','start','2027-02-01','end','2027-02-01','type','Personal','status','Pending','reason','private','by','00000000-0000-0000-0000-000000000001'))) where id = 'timeoff';" >/dev/null
+          curl -sS -X POST "${H[@]}" -H "Content-Type: application/json" "$URL/rest/v1/rpc/cancel_time_off" -d '{"p_id":"sectest-other"}' >/dev/null
+          still=$(curl -sS -X POST "${H[@]}" -H "Content-Type: application/json" "$URL/rest/v1/rpc/get_time_off" -d '{}')
+          echo "$still" | jq -e 'any(.[]; .id=="sectest-other")' >/dev/null && ok "Cannot cancel someone else's request" || bad "Cancelled someone else's request"
+          echo "$still" | jq -e 'any(.[]; .id=="sectest-other" and (has("reason") or has("type")))' >/dev/null && bad "Other request shows type/notes" || ok "Other request shows name and dates only"
+          curl -sS -X POST "${H[@]}" -H "Content-Type: application/json" "$URL/rest/v1/rpc/cancel_time_off" -d "$(jq -n --arg i "$RID" '{p_id:$i}')" >/dev/null
+          gone=$(curl -sS -X POST "${H[@]}" -H "Content-Type: application/json" "$URL/rest/v1/rpc/get_time_off" -d '{}' | jq --arg i "$RID" 'any(.[]; .id==$i) | not')
+          [ "$gone" = "true" ] && ok "Can cancel own pending request" || bad "Could not cancel own request"
+          n=$(curl -sS -o /dev/null -w '%{http_code}' -X POST -H "apikey: $ANON" -H "Content-Type: application/json" "$URL/rest/v1/rpc/get_time_off" -d '{}')
+          [ "$n" -ge 400 ] && ok "Signed-out visitors can't read time off (HTTP $n)" || bad "Anonymous time-off read (HTTP $n)"
+
+          # --- sign-ups ---
+          code=$(curl -sS -o su.json -w '%{http_code}' -X POST "$URL/auth/v1/signup" -H "apikey: $ANON" -H "Content-Type: application/json" -d '{"email":"signup-probe@example.invalid","password":"Xx1!Xx1!Xx1!Xx1!"}')
+          if [ "$code" -ge 400 ]; then ok "Public sign-up is blocked (HTTP $code)"; else bad "Public sign-up allowed (HTTP $code)"; sid=$(jq -r '.id // .user.id // empty' su.json); [ -n "$sid" ] && curl -sS -X DELETE "$URL/auth/v1/admin/users/$sid" -H "apikey: $SRV" -H "Authorization: Bearer $SRV" >/dev/null; fi
+
+          echo "RESULT: $pass passed, $fail failed"
+          [ "$fail" = "0" ]

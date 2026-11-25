@@ -53,22 +53,20 @@ Deno.serve(async (req) => {
       return reply(200, { me: user.id, members: (members ?? []).map((m) => ({ ...m, last_sign_in_at: seen.get(m.user_id) ?? null })) });
     }
 
+    // Add someone: creates their login and returns a one-time setup link (no password is ever made or shown).
+    // Existing logins are never changed here.
     if (b.action === "add") {
       const email = clean(b.email, 200).toLowerCase();
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return reply(400, { error: "That email doesn't look right." });
       const name = clean(b.name, 100), dept = role === "depthead" ? clean(b.dept, 60) : "";
-      const password = tempPassword();
-      let id: string | undefined;
-      const { data, error } = await admin.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { name, must_change_password: true } });
-      if (error) {
-        const existing = (await allUsers()).find((u) => (u.email ?? "").toLowerCase() === email);
-        if (!existing) return reply(400, { error: error.message });
-        id = existing.id;
-        await admin.auth.admin.updateUserById(id, { password, email_confirm: true, user_metadata: { name, must_change_password: true } });
-      } else id = data.user.id;
-      const { error: e2 } = await admin.from("members").upsert({ user_id: id, email, name, role, dept });
+      const site = clean(b.site, 200);
+      if ((await allUsers()).some((u) => (u.email ?? "").toLowerCase() === email))
+        return reply(400, { error: "That email already has a login. Use Change to update their access, or Send Setup Link to let them set a password." });
+      const { data, error } = await admin.auth.admin.generateLink({ type: "invite", email, options: { data: { name, must_change_password: true }, redirectTo: site || undefined } });
+      if (error || !data?.user) return reply(400, { error: error?.message ?? "Couldn't create the login." });
+      const { error: e2 } = await admin.from("members").upsert({ user_id: data.user.id, email, name, role, dept });
       if (e2) return reply(500, { error: e2.message });
-      return reply(200, { email, password });
+      return reply(200, { email, name, link: data.properties.action_link });
     }
 
     const target = clean(b.user_id, 60);
@@ -80,12 +78,16 @@ Deno.serve(async (req) => {
       if (error) return reply(500, { error: error.message });
       return reply(200, { ok: true });
     }
-    if (b.action === "reset") {
-      const password = tempPassword();
+    // A fresh one-time link for someone who hasn't set a password yet, or forgot it.
+    if (b.action === "link") {
       const { data: u } = await admin.auth.admin.getUserById(target);
-      const { error } = await admin.auth.admin.updateUserById(target, { password, email_confirm: true, user_metadata: { ...(u?.user?.user_metadata ?? {}), must_change_password: true } });
+      const email = u?.user?.email;
+      if (!email) return reply(404, { error: "Person not found" });
+      if (!u.user.email_confirmed_at) await admin.auth.admin.updateUserById(target, { email_confirm: true });
+      const neverIn = !u.user.last_sign_in_at;
+      const { data, error } = await admin.auth.admin.generateLink({ type: "recovery", email, options: { redirectTo: clean(b.site, 200) || undefined } });
       if (error) return reply(500, { error: error.message });
-      return reply(200, { email: u?.user?.email, password });
+      return reply(200, { email, name: u.user.user_metadata?.name ?? "", link: data.properties.action_link, first: neverIn });
     }
     if (b.action === "remove") {
       if (target === user.id) return reply(400, { error: "You can't remove yourself." });

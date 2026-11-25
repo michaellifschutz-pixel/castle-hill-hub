@@ -23,7 +23,10 @@
     if (!bg) { bg = document.createElement("div"); bg.id = "loginbg"; document.body.appendChild(bg); }
     return bg;
   }
+  const linkError = (() => { const m = /error_description=([^&]+)/.exec(location.hash || ""); if (!m) return ""; history.replaceState(null, "", location.pathname);
+    return /expired|invalid/i.test(decodeURIComponent(m[1])) ? "That setup link has expired or was already used. Ask Michael to send a new one from the Team page." : decodeURIComponent(m[1].replace(/\+/g, " ")); })();
   function showLogin(msg) {
+    msg = msg || linkError;
     const bg = overlay();
     bg.innerHTML = `<form id="loginbox"><h2>Castle Hill Hub</h2><p class="note">Sign in to continue.</p>
       <label class="f"><span>Email</span><input id="lg_e" type="email" autocomplete="username" required></label>
@@ -40,13 +43,13 @@
       const em = bg.querySelector("#lg_e").value.trim(); const m = bg.querySelector("#lg_msg");
       if (!em) { m.textContent = "Type your email first."; return; }
       await sb.auth.resetPasswordForEmail(em, { redirectTo: location.origin + location.pathname + "#setpw" });
-      m.style.color = "var(--green)"; m.textContent = "If that email has an account, a reset link is on its way. If nothing arrives, ask Michael to reset your password from the Team page.";
+      m.style.color = "var(--green)"; m.textContent = "If that email has an account, a reset link is on its way. If nothing arrives, ask Michael to send you a setup link from the Team page.";
     };
   }
   function showSetPassword(first, then) {
     const bg = overlay();
     bg.innerHTML = `<form id="loginbox"><h2>${first ? "Welcome — Choose Your Password" : "Set A New Password"}</h2>
-      ${first ? `<p class="note">You signed in with a temporary password. Choose your own to continue.</p>` : ""}
+      ${first ? `<p class="note">Choose a password to finish setting up your Castle Hill Hub login.</p>` : ""}
       <label class="f"><span>New Password (12+ characters)</span><input id="np" type="password" minlength="12" autocomplete="new-password" required></label>
       <label class="f"><span>Type It Again</span><input id="np2" type="password" minlength="12" autocomplete="new-password" required></label>
       <p class="note" id="np_msg" style="color:var(--red)"></p><div class="acts"><button class="btn pri" type="submit">Save Password</button></div></form>`;
@@ -313,12 +316,15 @@
     bg.innerHTML = ""; bg.appendChild(box);
     const close = () => { bg.remove(); };
     const roleName = r => r === "depthead" ? "Department Head · Time Off Only" : "Full Access";
-    function credsCard(email, password) {
-      const text = `You now have access to the Castle Hill Hub.\n\nGo to: ${site()}\nEmail: ${email}\nTemporary password: ${password}\n\nYou'll choose your own password when you first sign in.`;
-      return `<div class="card" style="padding:14px 16px;margin:12px 0;background:var(--greenbg)"><b>Send this to ${escH(email)}:</b>
-        <pre id="cr_txt" style="white-space:pre-wrap;font:inherit;margin:8px 0">${escH(text)}</pre>
-        <div class="acts"><button class="btn pri" id="cr_copy">Copy Message</button><a class="btn" href="mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent("Castle Hill Hub access")}&body=${encodeURIComponent(text)}">Open In Email</a></div>
-        <p class="note">This password isn't shown again. If it's lost, use Reset Password.</p></div>`;
+    function linkCard(email, name, link, first) {
+      const first1 = (name || "").split(" ")[0] || "there";
+      const subject = "Your Castle Hill Hub access";
+      const body = `Hi ${first1},\n\n${first === false ? "Here's a link to set a new password for" : "You now have access to"} the Castle Hill Hub${first === false ? "." : ", where you can request time off and see the status of your requests."}\n\nClick this link to choose your password (it works once and expires in 24 hours):\n${link}\n\nAfter that, sign in any time at ${site()} or scan the QR code posted in the office.\n\nThank you,\nMichael`;
+      return `<div class="card" style="padding:14px 16px;margin:12px 0;background:var(--greenbg)"><b>Setup link ready for ${escH(name || email)}</b>
+        <p class="note" style="margin:6px 0 10px">Send it to <b>${escH(email)}</b>. It works once, expires in 24 hours, and lets them choose their own password. No password is created or shown.</p>
+        <div class="acts"><a class="btn pri" id="lk_mail" href="mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}">Email Setup Link</a><button class="btn" id="lk_copy" type="button">Copy Message</button></div>
+        <textarea id="lk_txt" hidden>${escH(body)}</textarea>
+        <p class="note">If it expires before they use it, click <b>Send Setup Link</b> next to their name for a new one.</p></div>`;
     }
     async function draw(note) {
       box.innerHTML = `<h2>Team</h2><p class="note">Loading…</p>`;
@@ -326,11 +332,12 @@
       try { list = await teamCall({ action: "list" }); }
       catch (e) { box.innerHTML = `<h2>Team</h2><p style="color:var(--red)">${escH(e.message)}</p><div class="acts"><button class="btn" id="tm_x">Close</button></div>`; box.querySelector("#tm_x").onclick = close; return; }
       const ms = list.members.sort((a, b) => (a.role + (a.name || a.email)).localeCompare(b.role + (b.name || b.email)));
-      box.innerHTML = `<h2>Team</h2><p class="note">Who can sign in to the Hub. Full Access sees everything. Department Heads only see Time Off.</p>
+      box.innerHTML = `<h2>Team</h2><p class="note">Who can sign in to the Hub. Full Access sees everything. Department Heads only see Time Off. New people get a one-time setup link and choose their own password.</p>
         ${note || ""}
         <div class="card">${ms.map(m => `<div class="row" style="cursor:default;flex-wrap:wrap"><div class="main" style="min-width:200px"><div class="t">${escH(m.name || m.email)}${m.user_id === list.me ? " (You)" : ""}</div>
           <div class="m">${escH(m.email)} · ${roleName(m.role)}${m.dept ? " · " + escH(m.dept) : ""} · ${m.last_sign_in_at ? "Last signed in " + new Date(m.last_sign_in_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "Hasn't signed in yet"}</div></div>
-          ${m.user_id === list.me ? "" : `<button class="btn" data-edit="${m.user_id}">Change</button><button class="btn" data-reset="${m.user_id}">Reset Password</button><button class="btn warn" data-rm="${m.user_id}">Remove</button>`}</div>`).join("")}</div>
+          ${m.user_id === list.me ? "" : `<button class="btn" data-edit="${m.user_id}">Change</button><button class="btn" data-reset="${m.user_id}">Send Setup Link</button><button class="btn warn" data-rm="${m.user_id}">Remove</button>`}</div>`).join("")}</div>
+        <div class="acts" style="margin-top:10px"><a class="btn" href="qr.html" target="_blank" rel="noopener">Print QR Code For Department Heads</a></div>
         <h3>Add Someone</h3>
         <form id="tm_f" class="card" style="padding:4px 16px 14px">
           <label class="f"><span>Name</span><input id="tm_n" required maxlength="100" placeholder="e.g. Maria Teran"></label>
@@ -346,8 +353,8 @@
         const role = rsel.value;
         if (role === "admin" && !confirm("Full Access includes HR documents, Finance and everything else. Continue?")) { btn.disabled = false; btn.textContent = "Add Person"; return; }
         try {
-          const r = await teamCall({ action: "add", name: box.querySelector("#tm_n").value, email: box.querySelector("#tm_e").value, role, dept: box.querySelector("#tm_d").value });
-          await draw(credsCard(r.email, r.password)); wireCopy();
+          const r = await teamCall({ action: "add", name: box.querySelector("#tm_n").value, email: box.querySelector("#tm_e").value, role, dept: box.querySelector("#tm_d").value, site: site() });
+          await draw(linkCard(r.email, r.name, r.link, true)); wireCopy();
         } catch (x) { btn.disabled = false; btn.textContent = "Add Person"; box.querySelector("#tm_err").textContent = x.message; }
       };
       box.querySelectorAll("[data-rm]").forEach(b => b.onclick = async () => {
@@ -357,8 +364,8 @@
       });
       box.querySelectorAll("[data-reset]").forEach(b => b.onclick = async () => {
         const m = ms.find(x => x.user_id === b.dataset.reset);
-        if (!confirm(`Give ${m.name || m.email} a new temporary password?`)) return;
-        try { const r = await teamCall({ action: "reset", user_id: m.user_id }); await draw(credsCard(r.email, r.password)); wireCopy(); } catch (x) { alert(x.message); }
+        if (!confirm(`Make a new setup link for ${m.name || m.email}? Their current password keeps working until they use the link.`)) return;
+        try { const r = await teamCall({ action: "link", user_id: m.user_id, site: site() }); await draw(linkCard(r.email, r.name || m.name, r.link, r.first)); wireCopy(); } catch (x) { alert(x.message); }
       });
       box.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => {
         const m = ms.find(x => x.user_id === b.dataset.edit);
@@ -377,8 +384,8 @@
       });
     }
     function wireCopy() {
-      const c = box.querySelector("#cr_copy"); if (!c) return;
-      c.onclick = async () => { try { await navigator.clipboard.writeText(box.querySelector("#cr_txt").textContent); c.textContent = "Copied"; } catch (e) { c.textContent = "Select the text and copy it"; } };
+      const c = box.querySelector("#lk_copy"); if (!c) return;
+      c.onclick = async () => { try { await navigator.clipboard.writeText(box.querySelector("#lk_txt").value); c.textContent = "Copied"; } catch (e) { c.textContent = "Copy isn't allowed here — use Email Setup Link"; } };
     }
     draw();
   }

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Time Off QR Code</title>
+<style>
+  :root{color-scheme:light}
+  body{margin:0;background:#fff;color:#18202b;font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+  .page{max-width:640px;margin:0 auto;padding:40px 24px;text-align:center}
+  h1{font-size:36px;line-height:1.15;margin:0 0 6px;color:#1f3a5f}
+  .sub{font-size:20px;margin:0 0 28px;color:#5b6573}
+  .qr{width:min(360px,80vw);height:auto;display:block;margin:0 auto 20px}
+  .url{font-size:20px;font-weight:700;margin:0 0 28px;word-break:break-all}
+  ol{text-align:left;font-size:18px;max-width:440px;margin:0 auto 24px;padding-left:1.4em}
+  ol li{margin:6px 0}
+  .foot{font-size:14px;color:#5b6573}
+  .noprint{margin:24px 0 0}
+  .noprint button{font:inherit;font-weight:600;background:#1f3a5f;color:#fff;border:0;border-radius:10px;padding:12px 20px;min-height:44px;cursor:pointer}
+  @media print{.noprint{display:none}.page{padding:24px}}
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Castle Hill Hub</h1>
+  <p class="sub">Department heads: request time off here</p>
+  <img class="qr" src="qr.svg" alt="QR code linking to castlehill-hub.netlify.app">
+  <p class="url">castlehill-hub.netlify.app</p>
+  <ol>
+    <li>Scan the code with your phone camera.</li>
+    <li>Sign in with your work email and the password you chose.</li>
+    <li>Pick your dates and tap <b>Send Request</b>.</li>
+    <li>Check back to see if it's <b>Approved</b>.</li>
+  </ol>
+  <p class="foot">No login yet? Ask Michael to send you a setup link.</p>
+  <div class="noprint"><button onclick="window.print()">Print</button></div>
+</div>
+</body>
+</html>

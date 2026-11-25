@@ -1,0 +1,32 @@
+# Shows, or locks down, Supabase sign-in settings:
+#   - public sign-ups OFF (only people added on the Team page get logins)
+#   - setup links valid for 24 hours
+name: Sign-in settings
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "show or lock"
+        required: true
+        default: show
+
+jobs:
+  auth:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sign-in settings
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          ACTION: ${{ github.event.inputs.action }}
+        run: |
+          set -euo pipefail
+          API="https://api.supabase.com/v1/projects/wrqafbjeafxdnzvhqafo/config/auth"
+          show() { curl -sS -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" "$API" | jq '{disable_signup, external_email_enabled, mailer_autoconfirm, mailer_otp_exp, site_url, uri_allow_list}'; }
+          echo "BEFORE:"; show
+          if [ "$ACTION" = "lock" ]; then
+            code=$(curl -sS -o out.json -w '%{http_code}' -X PATCH -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H "Content-Type: application/json" \
+              "$API" -d '{"disable_signup": true, "mailer_otp_exp": 86400}')
+            echo "PATCH HTTP $code"; [ "$code" -lt 300 ] || { cat out.json; exit 1; }
+            echo "AFTER:"; show
+          fi
